@@ -1,33 +1,43 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-
+import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
 import Home from "../pages/home/Home";
 import EventDetails from "../pages/event-details/EventDetails";
 import Checkout from "../pages/checkout/Checkout";
 import PaymentVerification from "../pages/checkout/PaymentVerification";
 import PendingApproval from "../pages/checkout/PendingApproval";
+import Ticket from "../pages/checkout/Ticket";
+import AdminDashboard from "../pages/admin/AdminDashboard";
+import AdminLogin from "../pages/admin/AdminLogin";
+import AdminLayout from "../components/layout/AdminLayout";
 import Navbar from "../components/layout/navbar/Navbar";
 import Footer from "../components/layout/footer/Footer";
+import ProtectedRoute from "./ProtectedRoute";
+
+function AppContent() {
+  const { pathname } = useLocation();
+  const isAdminRoute = pathname.startsWith("/admin");
+
+  return (
+    <>
+      {!isAdminRoute && <Navbar />}
+      <Routes>
+        <Route path="/" element={<Home />} />
+        <Route path="/event/:id" element={<EventDetails />} />
+        <Route path="/checkout" element={<Checkout />} />
+        <Route path="/payment-verification" element={<PaymentVerification />} />
+        <Route path="/pending-approval" element={<PendingApproval />} />
+        <Route path="/ticket" element={<Ticket />} />
+        <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
+          <Route index element={<AdminDashboard />} />
+        </Route>
+      </Routes>
+      {!isAdminRoute && <Footer />}
+    </>
+  );
+}
 
 function AppRoutes() {
-  return (
-    <BrowserRouter>
-      <Navbar />
-      <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/event/:id" element={<EventDetails />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route
-            path="/payment-verification"
-            element={<PaymentVerification />}
-          />
-          <Route
-            path="/pending-approval"
-            element={<PendingApproval />}
-          />
-        </Routes>
-      <Footer />
-    </BrowserRouter>
-  );
+  return <BrowserRouter><AppContent /></BrowserRouter>;
 }
 
 export default AppRoutes;

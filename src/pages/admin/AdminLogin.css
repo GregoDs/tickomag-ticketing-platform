@@ -1,0 +1,25 @@
+.admin-login-page { display: grid; min-height: 100vh; padding: 36px 18px 70px; color: var(--paper); background: radial-gradient(circle at 80% 15%, rgb(233 255 112 / 8%), transparent 30%), #090909; }
+.admin-login-wordmark { align-self: start; width: fit-content; font-size: 1.45rem; font-weight: 700; letter-spacing: -.08em; }
+.admin-login-wordmark span { font-weight: 400; }
+.admin-login-wordmark i { color: var(--acid); font-style: normal; }
+.admin-login-copy { align-self: end; padding: 70px 0 45px; }
+.admin-login-copy > p { margin: 0 0 12px; color: var(--acid); font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .14em; }
+.admin-login-copy h1 { margin: 0; font-size: clamp(3.2rem, 14vw, 7rem); line-height: .88; letter-spacing: -.065em; }
+.admin-login-copy h1 em { color: var(--acid); font-family: Georgia, serif; font-weight: 400; }
+.admin-login-copy > span { display: block; max-width: 500px; margin-top: 24px; color: #858581; font-size: .73rem; line-height: 1.65; }
+.admin-login-card { align-self: end; padding: 28px 20px; border: 1px solid #30302d; background: #111; }
+.admin-login-card > span { color: #666662; font: .57rem monospace; }
+.admin-login-card h2 { margin: 25px 0 30px; font-size: 2rem; letter-spacing: -.04em; }
+.admin-login-card label { display: grid; gap: 8px; margin-top: 18px; color: #b8b8b2; font-size: .62rem; font-weight: 600; }
+.admin-login-card input { height: 54px; padding: 0 15px; color: var(--paper); border: 1px solid #393936; border-radius: 0; outline: none; background: #0b0b0b; }
+.admin-login-card input:focus { border-color: var(--acid); }
+.admin-login-card > small { display: block; margin-top: 12px; color: #ff8179; font-size: .6rem; line-height: 1.5; }
+.admin-login-card .ui-button { justify-content: space-between; width: 100%; margin-top: 26px; }
+.admin-login-card .ui-button:disabled { cursor: wait; opacity: .65; }
+
+@media (min-width: 800px) {
+  .admin-login-page { grid-template-columns: minmax(0, 1.2fr) minmax(340px, 460px); grid-template-rows: auto 1fr; gap: 60px; padding: 48px clamp(40px, 7vw, 110px) 80px; }
+  .admin-login-wordmark { grid-column: 1 / -1; }
+  .admin-login-copy { grid-column: 1; }
+  .admin-login-card { grid-column: 2; padding: 38px 34px; }
+}

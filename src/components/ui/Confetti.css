@@ -1,0 +1,9 @@
+.success-confetti { position: fixed; z-index: 120; inset: 0; overflow: hidden; pointer-events: none; }
+.success-confetti i { position: absolute; top: -18px; left: var(--x); width: 8px; height: 14px; opacity: 0; background: var(--confetti-color); animation: confetti-fall var(--duration) cubic-bezier(.2,.65,.35,1) var(--delay) forwards; }
+.success-confetti i:nth-child(3n) { width: 10px; height: 10px; border-radius: 50%; }
+.success-confetti i:nth-child(4n) { width: 5px; height: 18px; }
+@keyframes confetti-fall {
+  0% { opacity: 0; transform: translate3d(0, -5vh, 0) rotate(0deg); }
+  8% { opacity: 1; }
+  100% { opacity: 0; transform: translate3d(var(--drift), 105vh, 0) rotate(760deg); }
+}

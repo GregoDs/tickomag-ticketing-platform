@@ -1,4 +1,4 @@
-import { useLayoutEffect, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import "./Checkout.css";
@@ -11,6 +11,7 @@ function Checkout() {
   const navigate = useNavigate();
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
+  const formRef = useRef(null);
 
   useLayoutEffect(() => window.scrollTo(0, 0), []);
 
@@ -32,12 +33,18 @@ function Checkout() {
     if (!/^\S+@\S+\.\S+$/.test(form.email)) next.email = "Enter a valid email address";
     if (form.phone.replace(/\D/g, "").length < 9) next.phone = "Enter a valid phone number";
     setErrors(next);
-    return Object.keys(next).length === 0;
+    return Object.keys(next)[0];
   };
 
   const submit = (submitEvent) => {
     submitEvent.preventDefault();
-    if (!validate()) return;
+    const firstInvalidField = validate();
+    if (firstInvalidField) {
+      const input = formRef.current?.elements.namedItem(firstInvalidField);
+      input?.focus({ preventScroll: true });
+      input?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     navigate("/payment-verification", {
       state: {
         event,
@@ -79,7 +86,7 @@ function Checkout() {
           <small className="checkout-assurance">Your selection is reserved during this session.</small>
         </aside>
 
-        <form className="checkout-form" onSubmit={submit} noValidate>
+        <form ref={formRef} className="checkout-form" onSubmit={submit} noValidate>
           <section className="checkout-card">
             <div className="checkout-section-heading"><span>01</span><div><p>Attendee</p><h2>Personal Details &amp;<br />Contact Information</h2></div></div>
             <div className="checkout-fields">

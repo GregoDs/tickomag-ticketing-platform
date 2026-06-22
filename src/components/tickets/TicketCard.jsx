@@ -1,0 +1,38 @@
+import QRCodeDisplay from "./QRCodeDisplay";
+
+const formatDate = (value) => {
+  if (!value) return "Date to be announced";
+  return new Intl.DateTimeFormat("en-KE", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value));
+};
+
+function TicketCard({ ticket }) {
+  const attendeeName = `${ticket.attendee?.firstName || ""} ${ticket.attendee?.lastName || ""}`.trim();
+
+  return (
+    <article className="issued-ticket-card">
+      <div className="ticket-card-copy">
+        <div className="ticket-card-topline"><span>Admit {ticket.quantity || 1}</span><strong>Valid ticket</strong></div>
+        <p>TickoMag presents</p>
+        <h2>{ticket.event?.title || "Event ticket"}</h2>
+        <dl>
+          <div><dt>Date</dt><dd>{formatDate(ticket.event?.date)}</dd></div>
+          <div><dt>Venue</dt><dd>{ticket.event?.venue || "Venue to be announced"}</dd></div>
+          <div><dt>Ticket</dt><dd>{ticket.ticket?.name || "Admission"} × {ticket.quantity || 1}</dd></div>
+          <div><dt>Attendee</dt><dd>{attendeeName || "Ticket holder"}</dd></div>
+          <div><dt>Order</dt><dd>{ticket.orderId}</dd></div>
+        </dl>
+        <small>This QR is valid for one gate scan. Do not share it publicly.</small>
+      </div>
+      <QRCodeDisplay payload={ticket.qrPayload} ticketCode={ticket.ticketCode} />
+    </article>
+  );
+}
+
+export default TicketCard;

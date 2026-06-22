@@ -16,6 +16,7 @@
 .verification-payment strong { color: var(--acid); font-size: 1.45rem; }
 .verification-card input { height: 60px; color: var(--acid); font-family: monospace; font-size: 1.3rem; letter-spacing: .12em; text-transform: uppercase; }
 .verification-submit.ui-button { justify-content: space-between; width: 100%; min-height: 58px; margin-top: 28px; }
+.verification-submit.ui-button:disabled { cursor: wait; opacity: .65; }
 .verification-note { display: block; margin-top: 15px; color: #656561; font-size: .56rem; text-align: center; }
 .verification-summary > p { margin: 0 0 18px; color: var(--acid); font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; }
 .verification-summary dl { margin: 0; }
