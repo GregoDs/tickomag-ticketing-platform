@@ -1,0 +1,30 @@
+@import url("https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700;800;900&family=DM+Sans:wght@400;500;600;700&display=swap");
+
+:root {
+  font-family: "Spotify Mix", "Circular Spotify Text", "DM Sans", Arial, sans-serif;
+  color: #f5f4ef;
+  background: #090909;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  --ink: #090909;
+  --paper: #f5f4ef;
+  --muted: #9b9b98;
+  --acid: #e9ff70;
+  --red: #ff4138;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; background: var(--ink); }
+body { min-width: 320px; min-height: 100vh; margin: 0; overflow-x: hidden; }
+button, input { font: inherit; }
+button { color: inherit; }
+a { color: inherit; text-decoration: none; }
+img { display: block; max-width: 100%; }
+svg { fill: none; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; stroke-width: 1.8; }
+::selection { color: var(--ink); background: var(--acid); }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}

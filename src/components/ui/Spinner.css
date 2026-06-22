@@ -1,0 +1,3 @@
+.ui-spinner { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); font-size: .75rem; }
+.ui-spinner i { width: 18px; height: 18px; border: 2px solid #3a3a38; border-top-color: var(--acid); border-radius: 50%; animation: spinner-turn .75s linear infinite; }
+@keyframes spinner-turn { to { transform: rotate(360deg); } }

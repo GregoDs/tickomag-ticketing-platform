@@ -1,0 +1,77 @@
+.site-header {
+  position: fixed;
+  z-index: 100;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+  padding: 0 18px;
+  border-bottom: 1px solid rgb(255 255 255 / 16%);
+  background: transparent;
+  transition: background .3s, backdrop-filter .3s;
+  animation: header-in .7s ease-out both;
+}
+.site-header--solid { background: rgb(9 9 9 / 88%); backdrop-filter: blur(14px); }
+.wordmark { font-size: 1.36rem; font-weight: 700; letter-spacing: -.08em; line-height: 1; }
+.wordmark span { font-weight: 400; }
+.wordmark i { color: var(--acid); font-style: normal; }
+.desktop-nav, .desktop-only, .account-button span { display: none; }
+.nav-actions { display: flex; align-items: center; gap: 8px; }
+.icon-button, .account-button { display: grid; place-items: center; width: 38px; height: 38px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.icon-button svg, .account-button svg { width: 22px; }
+.menu-toggle { position: relative; z-index: 102; }
+
+.mobile-menu {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 92px 18px 34px;
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  background: #090909;
+  transform: translateY(-100%);
+  transition: visibility .55s, opacity .35s, transform .55s cubic-bezier(.76,0,.24,1);
+}
+.mobile-menu--open { visibility: visible; opacity: 1; transform: translateY(0); }
+.mobile-menu nav { position: relative; z-index: 2; display: flex; flex-direction: column; }
+.mobile-menu nav a { display: flex; align-items: flex-start; gap: 12px; color: var(--paper); font-family: "Barlow Condensed", Impact, sans-serif; font-size: clamp(3.7rem, 18vw, 5.6rem); font-weight: 800; line-height: .9; letter-spacing: -.045em; text-transform: uppercase; transform: translateY(22px); opacity: 0; transition: color .2s, opacity .4s, transform .45s; }
+.mobile-menu nav a small { width: 20px; padding-top: 8px; color: var(--red); font-family: monospace; font-size: .56rem; letter-spacing: 0; }
+.mobile-menu--open nav a { opacity: 1; transform: translateY(0); }
+.mobile-menu--open nav a:nth-child(1) { transition-delay: .2s; }
+.mobile-menu--open nav a:nth-child(2) { transition-delay: .25s; }
+.mobile-menu--open nav a:nth-child(3) { transition-delay: .3s; }
+.mobile-menu--open nav a:nth-child(4) { transition-delay: .35s; }
+.mobile-menu-footer { position: relative; z-index: 2; display: flex; justify-content: space-between; gap: 16px; margin-top: 42px; padding-top: 15px; border-top: 1px solid #30302e; color: #8f8f8b; font-size: .62rem; text-transform: uppercase; letter-spacing: .09em; }
+.mobile-menu-marquee { position: absolute; right: -20px; bottom: -38px; color: rgb(255 65 56 / 11%); font-family: "Barlow Condensed", Impact, sans-serif; font-size: 38vw; font-weight: 900; line-height: .8; white-space: nowrap; }
+
+@keyframes header-in { from { opacity: 0; transform: translateY(-16px); } }
+
+@media (min-width: 640px) {
+  .site-header { height: 80px; padding-inline: 32px; }
+}
+
+@media (min-width: 960px) {
+  .site-header { height: 86px; padding-inline: clamp(40px, 5vw, 82px); }
+  .wordmark { font-size: 1.62rem; }
+  .desktop-nav { position: absolute; left: 50%; display: flex; gap: 38px; transform: translateX(-50%); }
+  .desktop-nav a { position: relative; color: #d0cfca; font-size: .76rem; font-weight: 600; }
+  .desktop-nav a::after { content: ""; position: absolute; left: 0; bottom: -7px; width: 0; height: 1px; background: var(--acid); transition: width .25s; }
+  .desktop-nav a:hover::after { width: 100%; }
+  .desktop-only { display: grid; }
+  .mobile-only { display: none; }
+  .menu-toggle { display: grid; }
+  .account-button { display: flex; width: auto; gap: 9px; }
+  .account-button span { display: inline; font-size: .72rem; font-weight: 600; }
+  .mobile-menu { padding: 120px clamp(40px, 8vw, 130px) 55px; }
+  .mobile-menu nav a { width: fit-content; font-size: clamp(5.6rem, 9vw, 8.5rem); }
+  .mobile-menu nav a:hover { color: var(--acid); }
+  .mobile-menu-footer { margin-top: 48px; }
+  .mobile-menu-marquee { font-size: 25vw; }
+}

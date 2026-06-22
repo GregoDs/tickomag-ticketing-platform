@@ -1,0 +1,8 @@
+.ui-button { display: inline-flex; align-items: center; justify-content: center; gap: 28px; min-height: 50px; padding: 0 20px; border: 1px solid rgb(255 255 255 / 48%); border-radius: 0; color: inherit; background: rgb(0 0 0 / 22%); font-size: .75rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; cursor: pointer; backdrop-filter: blur(10px); transition: color .2s, background .2s, transform .2s; }
+.ui-button svg { width: 18px; }
+.ui-button--primary { color: var(--ink); border-color: var(--acid); background: var(--acid); }
+.ui-button:active { transform: scale(.97); }
+@media (min-width: 960px) {
+  .ui-button:hover { transform: translateY(-2px); }
+  .ui-button--primary:hover { color: var(--ink); border-color: #d8ef5f; background: #d8ef5f; }
+}
