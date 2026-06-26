@@ -1,9 +1,10 @@
-import { useEffect, useLayoutEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import TicketCard from "../../components/tickets/TicketCard";
 import TicketStatus from "../../components/tickets/TicketStatus";
 import { retrieveIssuedTicket } from "../../services/tickets.service";
+import { downloadTicketSvg } from "../../utils/downloadTicket";
 import "./Ticket.css";
 
 function Ticket() {
@@ -15,6 +16,7 @@ function Ticket() {
   const [ticket, setTicket] = useState(null);
   const [status, setStatus] = useState("loading");
   const [error, setError] = useState("");
+  const ticketRef = useRef(null);
 
   useLayoutEffect(() => window.scrollTo(0, 0), []);
 
@@ -68,9 +70,10 @@ function Ticket() {
       </section>
 
       <section className="ticket-page-shell">
-        <TicketCard ticket={ticket} />
+        <TicketCard ref={ticketRef} ticket={ticket} />
         <div className="ticket-page-actions">
-          <Button variant="primary" onClick={() => window.print()}>Print or save ticket</Button>
+          <Button variant="primary" onClick={() => downloadTicketSvg(ticket, ticketRef.current?.querySelector(".ticket-qr-canvas svg"))}>Download ticket</Button>
+          <Button onClick={() => window.print()}>Print ticket</Button>
           <Link to="/">Browse more events →</Link>
         </div>
       </section>

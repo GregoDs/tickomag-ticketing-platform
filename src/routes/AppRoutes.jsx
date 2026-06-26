@@ -3,6 +3,7 @@ import Home from "../pages/home/Home";
 import EventDetails from "../pages/event-details/EventDetails";
 import Checkout from "../pages/checkout/Checkout";
 import PaymentVerification from "../pages/checkout/PaymentVerification";
+import PaymentSuccess from "../pages/checkout/PaymentSuccess";
 import PendingApproval from "../pages/checkout/PendingApproval";
 import Ticket from "../pages/checkout/Ticket";
 import AdminDashboard from "../pages/admin/AdminDashboard";
@@ -24,6 +25,7 @@ function AppContent() {
         <Route path="/event/:id" element={<EventDetails />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/payment-verification" element={<PaymentVerification />} />
+        <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route path="/pending-approval" element={<PendingApproval />} />
         <Route path="/ticket" element={<Ticket />} />
         <Route path="/admin/login" element={<AdminLogin />} />

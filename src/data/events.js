@@ -18,12 +18,12 @@ export const events = [
     area: "Thika",
     image: masqueradeHero,
     category: "Nightlife",
-    priceFrom: 1000,
+    priceFrom: 1,
     featured: true,
     tickets: [
-      { id: "regular", name: "Regular", price: 1000, availability: "available" },
-      { id: "gate", name: "GATE", price: 2500, availability: "available" },
-      { id: "vip", name: "VIP", price: 2500, availability: "Sold Out" },
+      { id: "regular", name: "Regular", price: 1, availability: "available" },
+      { id: "gate", name: "GATE", price: 2, availability: "available" },
+      { id: "vip", name: "VIP", price: 2, availability: "Sold Out" },
     ],
   },
   {

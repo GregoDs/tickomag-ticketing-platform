@@ -72,6 +72,8 @@ async function stkPush(phone, amount, accountReference) {
 
   console.log("Passkey:", config.passkey);
 
+  console.log("Callback URL:", config.callbackUrl);
+
   console.log("Timestamp:", timestamp);
 
   console.log(

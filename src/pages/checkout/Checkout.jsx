@@ -1,16 +1,28 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Button from "../../components/ui/Button";
+import { initiateMpesaPayment } from "../../services/mpesa.service";
 import "./Checkout.css";
 
 const initialForm = { firstName: "", lastName: "", email: "", phone: "" };
 const money = (value = 0) => `KSh ${Number(value).toLocaleString("en-KE")}`;
+
+const normalizeMpesaPhone = (value) => {
+  const digits = value.replace(/\D/g, "");
+  if (digits.startsWith("254")) return digits;
+  if (digits.startsWith("0")) return `254${digits.slice(1)}`;
+  if (digits.length === 9) return `254${digits}`;
+  return digits;
+};
 
 function Checkout() {
   const { state } = useLocation();
   const navigate = useNavigate();
   const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
+  const [paymentMethod, setPaymentMethod] = useState("mpesa");
+  const [paymentError, setPaymentError] = useState("");
+  const [isPaying, setIsPaying] = useState(false);
   const formRef = useRef(null);
 
   useLayoutEffect(() => window.scrollTo(0, 0), []);
@@ -36,7 +48,7 @@ function Checkout() {
     return Object.keys(next)[0];
   };
 
-  const submit = (submitEvent) => {
+  const submit = async (submitEvent) => {
     submitEvent.preventDefault();
     const firstInvalidField = validate();
     if (firstInvalidField) {
@@ -45,21 +57,71 @@ function Checkout() {
       input?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
-    navigate("/payment-verification", {
-      state: {
-        event,
-        ticket,
-        quantity,
-        total,
-        attendee: {
-          firstName: form.firstName.trim(),
-          lastName: form.lastName.trim(),
-          email: form.email.trim().toLowerCase(),
-          phone: form.phone.trim(),
-        },
-        payment: { accountNumber: form.phone.trim(), tillNumber: "123456" },
+
+    if (paymentMethod !== "mpesa") {
+      setPaymentError("Card payments are not available yet. Choose M-Pesa to continue.");
+      return;
+    }
+
+    setIsPaying(true);
+    setPaymentError("");
+
+    const attendee = {
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      email: form.email.trim().toLowerCase(),
+      phone: form.phone.trim(),
+    };
+
+    const order = {
+      phone: normalizeMpesaPhone(form.phone),
+      amount: Number(total),
+      total: Number(total),
+      accountReference: event.id || "TEST_EVENT",
+      attendee,
+      event: {
+        id: event.id,
+        title: event.title,
+        description: event.description || "",
+        date: event.date || "",
+        endTime: event.endTime || "",
+        venue: event.venue || "",
+        area: event.area || "",
+        category: event.category || "",
+        image: event.image || "",
       },
-    });
+      ticket: {
+        id: ticket.id,
+        name: ticket.name,
+        unitPrice: Number(ticket.price),
+        quantity: Number(quantity),
+        availability: ticket.availability || "",
+      },
+      quantity: Number(quantity),
+    };
+
+    try {
+      const response = await initiateMpesaPayment(order);
+      const checkoutRequestID = response.data?.CheckoutRequestID;
+
+      if (!checkoutRequestID) {
+        throw new Error("The M-Pesa response did not include a checkout request ID.");
+      }
+
+      window.localStorage.setItem("tickomag:lastCheckoutRequestID", checkoutRequestID);
+      navigate("/payment-success", {
+        replace: true,
+        state: {
+          checkoutRequestID,
+          order,
+        },
+      });
+    } catch (error) {
+      console.error("M-Pesa payment initiation failed:", error);
+      setPaymentError(error.message || "We could not start the M-Pesa payment. Try again.");
+    } finally {
+      setIsPaying(false);
+    }
   };
 
   return (
@@ -99,18 +161,27 @@ function Checkout() {
 
           <section className="checkout-card payment-card">
             <div className="checkout-section-heading"><span>02</span><div><p>Payment</p><h2>Payment Information</h2></div></div>
-            <div className="payment-destination">
-              <div><small>Account Number</small><strong>{"254706622071"}</strong></div><i>or</i><div><small>Till Number</small><strong>123456</strong></div>
+            <div className="payment-methods" role="radiogroup" aria-label="Payment method">
+              <button className={paymentMethod === "mpesa" ? "is-selected" : ""} type="button" role="radio" aria-checked={paymentMethod === "mpesa"} onClick={() => { setPaymentMethod("mpesa"); setPaymentError(""); }}>
+                <span>M-Pesa</span>
+                <strong>STK push</strong>
+                <small>Receive a prompt on your phone and confirm with your PIN.</small>
+              </button>
+              <button className={paymentMethod === "card" ? "is-selected" : ""} type="button" role="radio" aria-checked={paymentMethod === "card"} onClick={() => setPaymentMethod("card")}>
+                <span>Card</span>
+                <strong>Coming soon</strong>
+                <small>Card checkout will be enabled after processor setup.</small>
+              </button>
             </div>
             <ol className="payment-steps">
-              <li><span>1</span>Complete payment using M-Pesa.Go to the M-pesa app or Sim Toolkit.</li>
-              <li><span>2</span>After payment from the M-pesa platform, click Confirm Payment.</li>
-              <li><span>3</span>After clicking Confirm Payment at the button below, Enter your M-Pesa transaction code from your M-Pesa messages i.e QH12ABC345.</li>
-              <li><span>4</span>Your ticket is issued after admin approval.</li>
+              <li><span>1</span>Tap Make payment and approve the STK prompt on your phone.</li>
+              <li><span>3</span>Your ticket is issued immediately after we confirm payment.</li>
+              <li><span>4</span>The next screen updates itself and shows your QR ticket.</li>
             </ol>
+            {paymentError && <small className="checkout-payment-error" role="alert">{paymentError}</small>}
           </section>
 
-          <Button className="checkout-submit" variant="primary" type="submit">Confirm payment <span>→</span></Button>
+          <Button className="checkout-submit" variant="primary" type="submit" disabled={isPaying}>{isPaying ? "Sending STK prompt…" : "Make payment"} <span>→</span></Button>
         </form>
       </div>
     </main>

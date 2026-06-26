@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import QRCodeDisplay from "./QRCodeDisplay";
 
 const formatDate = (value) => {
@@ -12,11 +13,13 @@ const formatDate = (value) => {
   }).format(new Date(value));
 };
 
-function TicketCard({ ticket }) {
+const TicketCard = forwardRef(function TicketCard({ ticket }, ref) {
   const attendeeName = `${ticket.attendee?.firstName || ""} ${ticket.attendee?.lastName || ""}`.trim();
 
   return (
-    <article className="issued-ticket-card">
+    <article ref={ref} className="issued-ticket-card">
+      <div className="ticket-cut-edge"><span>Cut here</span></div>
+      <QRCodeDisplay payload={ticket.qrPayload} ticketCode={ticket.ticketCode} />
       <div className="ticket-card-copy">
         <div className="ticket-card-topline"><span>Admit {ticket.quantity || 1}</span><strong>Valid ticket</strong></div>
         <p>TickoMag presents</p>
@@ -30,9 +33,8 @@ function TicketCard({ ticket }) {
         </dl>
         <small>This QR is valid for one gate scan. Do not share it publicly.</small>
       </div>
-      <QRCodeDisplay payload={ticket.qrPayload} ticketCode={ticket.ticketCode} />
     </article>
   );
-}
+});
 
 export default TicketCard;

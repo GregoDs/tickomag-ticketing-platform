@@ -5,7 +5,16 @@ async function initiateStkPush(req, res) {
   let paymentRef = null;
 
   try {
-    const { phone, amount, accountReference } = req.body;
+    const {
+      phone,
+      amount,
+      accountReference,
+      attendee = {},
+      event = {},
+      ticket = {},
+      quantity = 1,
+      total,
+    } = req.body;
 
     if (!phone || !amount || !accountReference) {
       return res.status(400).json({
@@ -35,7 +44,12 @@ async function initiateStkPush(req, res) {
         response.MerchantRequestID || null,
       phone,
       amount,
-      eventId: "masquerade_mku_2026",
+      total: Number(total ?? amount),
+      attendee,
+      event,
+      ticket,
+      quantity: Number(quantity),
+      eventId: event.id || "masquerade_mku_2026",
       merchantAccount: accountReference,
       status: "pending",
       createdAt: new Date(),

@@ -1,5 +1,12 @@
 const ticketService = require("../services/ticket.service");
 const { db } = require("../services/firebase.service");
+const { FieldValue } = require("firebase-admin/firestore");
+
+function getCallbackValue(items, name) {
+  return items.find(
+    item => item.Name === name
+  )?.Value;
+}
 
 async function mpesaStkCallback(req, res) {
   try {
@@ -15,15 +22,12 @@ async function mpesaStkCallback(req, res) {
     const stkCallback =
       req.body?.Body?.stkCallback;
 
-    // Respond immediately to Safaricom
-    res.status(200).json({
-      ResultCode: 0,
-      ResultDesc: "Accepted"
-    });
-
     if (!stkCallback) {
       console.log("Invalid callback payload");
-      return;
+      return res.status(400).json({
+        ResultCode: 1,
+        ResultDesc: "Invalid callback payload"
+      });
     }
 
     const checkoutRequestID =
@@ -38,6 +42,20 @@ async function mpesaStkCallback(req, res) {
     const resultDesc =
       stkCallback.ResultDesc;
 
+    await db
+      .collection("mpesaCallbacks")
+      .doc(checkoutRequestID)
+      .set({
+        checkoutRequestID,
+        merchantRequestID,
+        resultCode,
+        resultDesc,
+        callbackMetadata:
+          stkCallback.CallbackMetadata || null,
+        payload: req.body,
+        receivedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
+
     // Direct document lookup
     const paymentRef = db
       .collection("mpesaPayments")
@@ -50,19 +68,25 @@ async function mpesaStkCallback(req, res) {
       console.log(
         `Payment not found for ${checkoutRequestID}`
       );
-      return;
     }
 
     // PAYMENT FAILED
     if (resultCode !== 0) {
 
-      await paymentRef.update({
+      await paymentRef.set({
+        checkoutRequestID,
         status: "failed",
         failureCode: resultCode,
         failureReason: resultDesc,
         merchantRequestID,
-        updatedAt: new Date()
-      });
+        resultCode,
+        resultDesc,
+        callbackMetadata:
+          stkCallback.CallbackMetadata || null,
+        callbackPayload: req.body,
+        callbackReceivedAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp(),
+      }, { merge: true });
 
       console.log("Payment failed:", {
         checkoutRequestID,
@@ -70,7 +94,10 @@ async function mpesaStkCallback(req, res) {
         resultDesc
       });
 
-      return;
+      return res.status(200).json({
+        ResultCode: 0,
+        ResultDesc: "Accepted"
+      });
     }
 
     // SUCCESS PAYMENT
@@ -78,43 +105,40 @@ async function mpesaStkCallback(req, res) {
       stkCallback.CallbackMetadata?.Item || [];
 
     const amount =
-      items.find(
-        item => item.Name === "Amount"
-      )?.Value;
+      getCallbackValue(items, "Amount");
 
     const receipt =
-      items.find(
-        item => item.Name === "MpesaReceiptNumber"
-      )?.Value;
+      getCallbackValue(items, "MpesaReceiptNumber");
 
     const transactionDate =
-      items.find(
-        item => item.Name === "TransactionDate"
-      )?.Value;
+      getCallbackValue(items, "TransactionDate");
 
     const phone =
-      items.find(
-        item => item.Name === "PhoneNumber"
-      )?.Value;
+      getCallbackValue(items, "PhoneNumber");
 
     const balance =
-      items.find(
-        item => item.Name === "Balance"
-      )?.Value;
+      getCallbackValue(items, "Balance");
 
-    await paymentRef.update({
+    await paymentRef.set({
+      checkoutRequestID,
+      merchantRequestID,
       status: "paid",
       amountPaid: amount,
       mpesaReceiptNumber: receipt,
       mpesaTransactionDate: transactionDate,
       balance: balance ?? null,
       paidPhone: phone,
-      merchantRequestID,
       resultCode,
       resultDesc,
-      paidAt: new Date(),
-      updatedAt: new Date()
-    });
+      callbackMetadata: {
+        items,
+        raw: stkCallback.CallbackMetadata || null,
+      },
+      callbackPayload: req.body,
+      callbackReceivedAt: FieldValue.serverTimestamp(),
+      paidAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    }, { merge: true });
 
     console.log("Payment Success:", {
       checkoutRequestID,
@@ -126,12 +150,24 @@ async function mpesaStkCallback(req, res) {
       transactionDate
     });
 
-    await ticketService.confirmPayment({
-      paymentId: checkoutRequestID,
-      checkoutRequestID,
-      receipt,
-      amount,
-      phone
+    try {
+      await ticketService.confirmPayment({
+        paymentId: checkoutRequestID,
+        checkoutRequestID,
+        receipt,
+        amount,
+        phone
+      });
+    } catch (ticketError) {
+      console.error(
+        "Ticket issue failed after payment update:",
+        ticketError
+      );
+    }
+
+    return res.status(200).json({
+      ResultCode: 0,
+      ResultDesc: "Accepted"
     });
 
   } catch (error) {
@@ -139,6 +175,13 @@ async function mpesaStkCallback(req, res) {
       "Callback Error:",
       error
     );
+
+    if (!res.headersSent) {
+      return res.status(500).json({
+        ResultCode: 1,
+        ResultDesc: "Callback processing failed"
+      });
+    }
   }
 }
 
