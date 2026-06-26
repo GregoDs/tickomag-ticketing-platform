@@ -35,7 +35,7 @@ export async function createTicketRequest(data) {
   const normalizedPhone = normalizePhoneNumber(data.phone || data.attendee?.phone);
   const paymentReferenceId = await hashValue(normalizedCode);
   const statusReferenceId = await hashValue(`${normalizedCode}:${normalizedPhone}`);
-  const paymentReference = doc(db, "paymentReferences", paymentReferenceId);
+  const paymentReference = doc(db, "manualMpesaPaymentLookups", paymentReferenceId);
   const statusReference = doc(db, "requestStatuses", statusReferenceId);
   const requestReference = doc(ticketRequests);
   const orderId = createOrderId(requestReference.id);
