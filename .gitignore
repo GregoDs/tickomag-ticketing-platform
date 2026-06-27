@@ -18,6 +18,11 @@ dist-ssr
 .env
 *.local
 
+# Local Google service-account credentials
+serviceAccountKey.json
+serviceAccountKey.*.json
+*-service-account-key.json
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

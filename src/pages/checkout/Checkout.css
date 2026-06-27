@@ -18,6 +18,7 @@
 .checkout-fields input[aria-invalid="true"], .verification-card input[aria-invalid="true"] { border-color: #ff6c63; }
 .checkout-fields label small, .verification-card label small { color: #ff7770; font-size: .57rem; text-transform: none; letter-spacing: 0; }
 .payment-methods { display: grid; gap: 12px; margin-top: 36px; }
+.payment-methods.payment-methods--single { grid-template-columns: minmax(0, 1fr); }
 .payment-methods button { display: grid; gap: 7px; min-height: 118px; padding: 18px; border: 1px solid #333330; color: var(--paper); background: #151515; text-align: left; cursor: pointer; transition: border-color .2s, background .2s; }
 .payment-methods button.is-selected { border-color: var(--acid); background: #171812; box-shadow: inset 0 0 0 1px var(--acid); }
 .payment-methods span { color: var(--acid); font-size: .58rem; font-weight: 700; text-transform: uppercase; letter-spacing: .12em; }
@@ -28,6 +29,7 @@
 .payment-steps span { display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid #3b3b38; border-radius: 50%; color: var(--acid); font-size: .55rem; }
 .checkout-payment-error { display: block; margin-top: 18px; color: #ff7770; font-size: .65rem; line-height: 1.5; }
 .checkout-submit.ui-button { justify-content: space-between; width: 100%; min-height: 58px; margin-top: 6px; }
+.checkout-submit.ui-button:focus { outline: 2px solid var(--acid); outline-offset: 4px; }
 .checkout-summary { padding: 22px; border: 1px solid #30302d; background: #111; }
 .checkout-kicker { margin: 0 0 18px; color: var(--acid); font-size: .6rem; font-weight: 700; text-transform: uppercase; letter-spacing: .13em; }
 .checkout-summary > img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }

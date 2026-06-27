@@ -7,10 +7,6 @@ export default defineConfig({
   server: {
     host: "0.0.0.0",
 
-    allowedHosts: [
-      "a1d2-105-160-45-187.ngrok-free.app"
-    ],
-
     proxy: {
       "/tickomag": {
         target: "http://127.0.0.1:5001",

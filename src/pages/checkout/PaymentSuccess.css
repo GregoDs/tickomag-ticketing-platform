@@ -16,6 +16,8 @@
 .payment-wait-card strong { display: block; margin-top: 12px; overflow-wrap: anywhere; font-family: monospace; font-size: .88rem; }
 .payment-wait-card p { max-width: 560px; margin: 18px 0 24px; color: #8e8e89; font-size: .78rem; line-height: 1.6; }
 .payment-status-error { color: #ff7770; font-size: .65rem; }
+.payment-wait-actions { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 18px; }
+.payment-wait-actions .ui-button { flex: 1; min-width: 140px; }
 .payment-ticket-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 14px; width: min(100%, 440px); }
 .payment-success-summary dl { margin: 22px 0 0; }
 .payment-success-summary dl > div { display: flex; justify-content: space-between; gap: 18px; padding: 13px 0; color: #858581; font-size: .68rem; }

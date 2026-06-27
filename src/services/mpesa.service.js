@@ -1,13 +1,17 @@
-const DEVELOPMENT_API_URL =
-  "/functions-api/tickomag/us-central1/api";
+const DEFAULT_FUNCTIONS_API_URL =
+  "https://api-spenbqlbqq-uc.a.run.app/api";
 
-const API_BASE_URL =
-  import.meta.env.VITE_MPESA_API_BASE_URL ||
-  `${DEVELOPMENT_API_URL}/mpesa`;
+function withoutTrailingSlash(value) {
+  return value.replace(/\/+$/, "");
+}
 
-export const FUNCTIONS_API_URL =
-  import.meta.env.VITE_FUNCTIONS_API_URL ||
-  DEVELOPMENT_API_URL;
+export const FUNCTIONS_API_URL = withoutTrailingSlash(
+  import.meta.env.VITE_FUNCTIONS_API_URL || DEFAULT_FUNCTIONS_API_URL
+);
+
+const API_BASE_URL = withoutTrailingSlash(
+  import.meta.env.VITE_MPESA_API_BASE_URL || `${FUNCTIONS_API_URL}/mpesa`
+);
 
 async function parseResponse(response) {
   const payload = await response.json().catch(() => ({}));

@@ -9,18 +9,17 @@
 .details-hero-copy > span { color: #fff; }
 .details-hero h1 { max-width: 940px; margin: 12px 0 0; font-size: clamp(3.4rem, 17vw, 6.5rem); line-height: .84; letter-spacing: -.065em; }
 .details-shell { max-width: 1320px; margin: auto; padding: 38px 18px 86px; }
-.event-intro { padding-bottom: 70px; }
-.event-intro-heading { display: grid; gap: 24px; margin-top: 15px; }
+.event-intro { padding-bottom: 32px; }
+.event-intro-heading { display: flex; align-items: center; justify-content: space-between; gap: 20px; }
 .event-intro h2, .ticket-heading h2, .order-summary h2 { margin: 0; font-size: clamp(2.35rem, 11vw, 4.8rem); line-height: .95; letter-spacing: -.055em; }
 .calendar-button.ui-button, .summary-calendar.ui-button { width: fit-content; gap: 9px; min-height: 46px; padding: 0 15px; border-color: #383836; color: var(--paper); background: transparent; font-size: .68rem; }
 .calendar-button svg, .summary-calendar svg { width: 17px; }
-.event-description { max-width: 680px; margin: 35px 0; color: #a9a9a5; font-size: 1rem; line-height: 1.75; }
-.event-facts { display: grid; gap: 24px; }
+.event-facts { display: grid; gap: 24px; margin-top: 28px; }
 .event-facts > div { display: flex; align-items: center; gap: 15px; font-size: .84rem; font-weight: 600; }
 .event-facts svg { width: 20px; color: var(--acid); }
 .event-facts span { display: flex; flex-direction: column; gap: 5px; }
 .event-facts small { color: #777773; font-size: .58rem; font-weight: 600; text-transform: uppercase; letter-spacing: .12em; }
-.ticket-section { padding-top: 58px; }
+.ticket-section { padding-top: 36px; border-top: 1px solid #292927; }
 .ticket-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 15px; margin-bottom: 28px; }
 .ticket-heading h2 { margin-top: 10px; font-size: clamp(2rem, 9vw, 3.5rem); }
 .ticket-heading > span { display: none; color: #777773; font-size: .62rem; text-transform: uppercase; letter-spacing: .1em; }
@@ -36,7 +35,8 @@
 .availability { grid-column: 2; width: fit-content; padding: 5px 7px; border-radius: 999px; color: var(--acid); background: rgb(233 255 112 / 9%); font-size: .53rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
 .availability.unavailable { color: #777773; background: #222220; }
 .ticket-price { grid-row: 1 / 3; grid-column: 3; font-size: .8rem; white-space: nowrap; }
-.order-summary { margin-top: 64px; padding: 25px 20px; border: 1px solid #2d2d2b; background: #111; box-shadow: 0 24px 60px rgb(0 0 0 / 28%); }
+.order-summary { margin-top: 64px; padding: 25px 20px; scroll-margin-top: 88px; border: 1px solid #2d2d2b; background: #111; box-shadow: 0 24px 60px rgb(0 0 0 / 28%); transition: border-color .25s, box-shadow .25s; }
+.order-summary--ready { border-color: #77784b; box-shadow: 0 24px 60px rgb(0 0 0 / 28%), 0 0 0 1px rgb(233 255 112 / 15%); }
 .order-summary h2 { margin: 9px 0 26px; font-size: 1.7rem; }
 .summary-event { display: grid; grid-template-columns: 68px 1fr; gap: 13px; align-items: center; padding-bottom: 20px; }
 .summary-event img { width: 68px; height: 68px; object-fit: cover; }
@@ -47,6 +47,7 @@
 .summary-row > span { color: #777773; }
 .quantity-selector { display: grid; grid-template-columns: 30px 30px 30px; height: 32px; border: 1px solid #363634; }
 .quantity-selector button { border: 0; color: var(--paper); background: transparent; cursor: pointer; }
+.quantity-selector button:disabled { color: #4d4d49; cursor: not-allowed; }
 .quantity-selector strong { display: grid; place-items: center; color: var(--acid); font-size: .68rem; }
 .summary-total { display: flex; align-items: flex-end; justify-content: space-between; padding: 25px 0; }
 .summary-total span { color: #878783; font-size: .72rem; }
@@ -63,7 +64,6 @@
   .details-back { left: 32px; }
   .details-hero-copy { right: 32px; bottom: 58px; left: 32px; }
   .details-shell { padding: 52px 32px 110px; }
-  .event-intro-heading { grid-template-columns: 1fr auto; align-items: end; }
   .event-facts { grid-template-columns: repeat(3, 1fr); gap: 40px; }
   .event-facts > div { align-items: flex-start; }
   .ticket-heading > span { display: block; }
@@ -79,8 +79,8 @@
   .details-hero-copy { right: clamp(40px, 8vw, 130px); bottom: 78px; left: clamp(40px, 8vw, 130px); }
   .details-hero h1 { font-size: clamp(6rem, 10vw, 9.5rem); }
   .details-shell { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: clamp(70px, 9vw, 140px); padding: 68px clamp(40px, 6vw, 92px) 145px; }
-  .event-intro { padding-bottom: 100px; }
-  .ticket-section { padding-top: 80px; }
+  .event-intro { padding-bottom: 48px; }
+  .ticket-section { padding-top: 48px; }
   .order-summary { position: sticky; top: 112px; align-self: start; margin: 0; }
   .ticket-option:hover:not(:disabled) { border-color: #555550; transform: translateY(-1px); }
 }

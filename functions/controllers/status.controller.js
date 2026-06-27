@@ -21,6 +21,11 @@ function publicPayment(paymentId, paymentData) {
     ticketIssued: Boolean(paymentData.ticketIssued),
     ticketId: paymentData.ticketId || null,
     ticketCode: paymentData.ticketCode || null,
+    eventId: paymentData.eventId || paymentData.event?.id || null,
+    event: paymentData.event || null,
+    ticket: paymentData.ticket || null,
+    quantity: Number(paymentData.quantity || 1),
+    total: Number(paymentData.total ?? paymentData.amount ?? 0),
     failureCode: paymentData.failureCode || null,
     failureReason: paymentData.failureReason || null,
     createdAt: timestampToJson(paymentData.createdAt),
@@ -152,7 +157,62 @@ async function getTicket(req, res) {
   }
 }
 
+async function lookupTicket(req, res) {
+  try {
+    const code = String(req.body?.code || "").trim().toUpperCase();
+    if (!/^[A-Z0-9-]{6,40}$/.test(code)) {
+      return res.status(400).json({
+        success: false,
+        message: "Enter a valid M-Pesa receipt or ticket code.",
+      });
+    }
+
+    let ticketDoc = null;
+    for (const field of ["ticketCode", "mpesaReceiptNumber", "mpesaCode"]) {
+      const snapshot = await db.collection("tickets")
+        .where(field, "==", code)
+        .limit(1)
+        .get();
+      if (!snapshot.empty) {
+        ticketDoc = snapshot.docs[0];
+        break;
+      }
+    }
+
+    if (!ticketDoc) {
+      const paymentSnapshot = await db.collection("mpesaPayments")
+        .where("mpesaReceiptNumber", "==", code)
+        .limit(1)
+        .get();
+      const ticketId = paymentSnapshot.docs[0]?.data()?.ticketId;
+      if (ticketId) {
+        const linkedTicket = await db.collection("tickets").doc(ticketId).get();
+        if (linkedTicket.exists) ticketDoc = linkedTicket;
+      }
+    }
+
+    if (!ticketDoc) {
+      return res.status(404).json({
+        success: false,
+        message: "No ticket matches that code.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: { ticket: publicTicket(ticketDoc.id, ticketDoc.data()) },
+    });
+  } catch (error) {
+    console.error("Ticket lookup error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "The ticket could not be retrieved.",
+    });
+  }
+}
+
 module.exports = {
   getPaymentStatus,
   getTicket,
+  lookupTicket,
 };

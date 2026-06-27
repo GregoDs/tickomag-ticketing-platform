@@ -6,6 +6,7 @@ import PaymentVerification from "../pages/checkout/PaymentVerification";
 import PaymentSuccess from "../pages/checkout/PaymentSuccess";
 import PendingApproval from "../pages/checkout/PendingApproval";
 import Ticket from "../pages/checkout/Ticket";
+import MyTickets from "../pages/tickets/MyTickets";
 import AdminDashboard from "../pages/admin/AdminDashboard";
 import OperationsDashboard from "../pages/admin/OperationsDashboard";
 import AdminLogin from "../pages/admin/AdminLogin";
@@ -30,6 +31,7 @@ function AppContent() {
         <Route path="/payment-success" element={<PaymentSuccess />} />
         <Route path="/pending-approval" element={<PendingApproval />} />
         <Route path="/ticket" element={<Ticket />} />
+        <Route path="/my-tickets" element={<MyTickets />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
           <Route index element={<OperationsDashboard />} />

@@ -1,10 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import Confetti from "../../components/ui/Confetti";
 import TicketCard from "../../components/tickets/TicketCard";
 import TicketStatus from "../../components/tickets/TicketStatus";
 import { getMpesaPaymentStatus } from "../../services/mpesa.service";
+import { getEvent } from "../../services/events.service";
 import { downloadTicketSvg } from "../../utils/downloadTicket";
 import "./PaymentSuccess.css";
 import "./Ticket.css";
@@ -13,12 +14,14 @@ const money = (value = 0) => `KSh ${Number(value).toLocaleString("en-KE")}`;
 
 function PaymentSuccess() {
   const { state } = useLocation();
+  const navigate = useNavigate();
   const checkoutRequestID = state?.checkoutRequestID || window.localStorage.getItem("tickomag:lastCheckoutRequestID") || "";
   const order = useMemo(() => state?.order || null, [state]);
   const [payment, setPayment] = useState(null);
   const [ticket, setTicket] = useState(null);
   const [error, setError] = useState("");
   const [attempts, setAttempts] = useState(0);
+  const [isRestarting, setIsRestarting] = useState(false);
   const ticketRef = useRef(null);
 
   useLayoutEffect(() => window.scrollTo(0, 0), []);
@@ -38,7 +41,7 @@ function PaymentSuccess() {
         setTicket(response.data.ticket);
         setError("");
 
-        if (!response.data.ticket && attempts < 30) {
+        if (!response.data.ticket && response.data.payment?.status !== "failed" && attempts < 30) {
           timer = window.setTimeout(() => setAttempts((current) => current + 1), 3000);
         }
       } catch (statusError) {
@@ -68,12 +71,42 @@ function PaymentSuccess() {
     );
   }
 
-  const isPaid = payment?.status === "paid";
   const isFailed = payment?.status === "failed";
   const displayTicket = ticket || null;
   const summaryEvent = order?.event || displayTicket?.event || {};
   const summaryTicket = order?.ticket || displayTicket?.ticket || {};
   const summaryTotal = order?.total ?? displayTicket?.total ?? payment?.amount ?? 0;
+
+  const restartCheckout = async () => {
+    const eventId = order?.event?.id || payment?.eventId || payment?.event?.id;
+    const ticketId = order?.ticket?.id || payment?.ticket?.id;
+    if (!eventId || !ticketId) {
+      setError("This checkout cannot be restarted. Return to the event and select a ticket again.");
+      return;
+    }
+
+    setIsRestarting(true);
+    setError("");
+    try {
+      const event = await getEvent(eventId);
+      const ticket = event.tickets.find((option) => option.id === ticketId);
+      if (!ticket) throw new Error("That ticket type is no longer available.");
+      const quantity = Number(order?.quantity || payment?.quantity || 1);
+      window.localStorage.removeItem("tickomag:lastCheckoutRequestID");
+      navigate("/checkout", {
+        replace: true,
+        state: {
+          event,
+          ticket,
+          quantity,
+          total: Number(ticket.price) * quantity,
+        },
+      });
+    } catch (restartError) {
+      setError(restartError.message || "Checkout could not be restarted.");
+      setIsRestarting(false);
+    }
+  };
 
   return (
     <main className="payment-success-page">
@@ -119,9 +152,12 @@ function PaymentSuccess() {
               <span>Checkout request</span>
               <strong>{checkoutRequestID}</strong>
               <p>{isFailed ? "Start a fresh checkout if you still want this ticket." : "Keep this tab open while we wait for Safaricom to confirm the payment."}</p>
-              <Button variant="primary" type="button" onClick={() => setAttempts((current) => current + 1)}>
-                Refresh status
-              </Button>
+              <div className="payment-wait-actions">
+                {!isFailed && <Button variant="primary" type="button" onClick={() => setAttempts((current) => current + 1)}>Refresh status</Button>}
+                <Button type="button" onClick={restartCheckout} disabled={isRestarting}>
+                  {isRestarting ? "Loading checkout…" : isFailed ? "Try payment again" : "Start over"}
+                </Button>
+              </div>
             </div>
           )}
 

@@ -6,7 +6,7 @@ function Footer() {
     <footer className="site-footer">
       <Link className="wordmark" to="/">ticko<span>mag</span><i>.</i></Link>
       <p>Made for Nairobi nights.</p>
-      <small>© 2026 gregorykago designs</small>
+      <small>© 2026 gregorykago arts</small>
     </footer>
   );
 }

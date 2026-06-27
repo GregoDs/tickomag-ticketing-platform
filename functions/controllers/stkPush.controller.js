@@ -1,5 +1,6 @@
 const { stkPush } = require("../services/mpesa.service");
 const { db } = require("../services/firebase.service");
+const { getCheckoutQuote } = require("../services/event.service");
 
 async function initiateStkPush(req, res) {
   let paymentRef = null;
@@ -7,27 +8,28 @@ async function initiateStkPush(req, res) {
   try {
     const {
       phone,
-      amount,
-      accountReference,
       attendee = {},
-      event = {},
-      ticket = {},
+      eventId,
+      ticketId,
       quantity = 1,
-      total,
     } = req.body;
 
-    if (!phone || !amount || !accountReference) {
+    if (!phone || !eventId || !ticketId) {
       return res.status(400).json({
         success: false,
-        message: "Missing required fields"
+        message: "Phone, eventId and ticketId are required"
       });
     }
 
-    // Send STK Push FIRST
+    const quote = await getCheckoutQuote({ eventId, ticketId, quantity });
+    if (!quote.merchantAccount) {
+      throw new Error(`Event ${quote.event.id} has no merchant account configured.`);
+    }
+
     const response = await stkPush(
       phone,
-      amount,
-      accountReference
+      quote.total,
+      quote.merchantAccount
     );
 
     const checkoutRequestID =
@@ -43,14 +45,17 @@ async function initiateStkPush(req, res) {
       merchantRequestID:
         response.MerchantRequestID || null,
       phone,
-      amount,
-      total: Number(total ?? amount),
+      amount: quote.total,
+      total: quote.total,
       attendee,
-      event,
-      ticket,
-      quantity: Number(quantity),
-      eventId: event.id || "masquerade_mku_2026",
-      merchantAccount: accountReference,
+      event: quote.event,
+      ticket: {
+        ...quote.ticket,
+        quantity: quote.quantity,
+      },
+      quantity: quote.quantity,
+      eventId: quote.event.id,
+      merchantAccount: quote.merchantAccount,
       status: "pending",
       createdAt: new Date(),
       updatedAt: new Date()
@@ -59,7 +64,15 @@ async function initiateStkPush(req, res) {
     return res.status(200).json({
       success: true,
       message: "STK Push initiated",
-      data: response
+      data: {
+        ...response,
+        quote: {
+          event: quote.event,
+          ticket: quote.ticket,
+          quantity: quote.quantity,
+          total: quote.total,
+        },
+      }
     });
 
   } catch (error) {
@@ -80,7 +93,7 @@ async function initiateStkPush(req, res) {
       error.response?.data
     );
 
-    return res.status(500).json({
+    return res.status(error.statusCode || 500).json({
       success: false,
       message: "STK Push failed",
       error: error.message

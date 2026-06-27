@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
-import { events } from "../../data/events";
 import useAuth from "../../hooks/useAuth";
+import { getEvents } from "../../services/events.service";
 import { subscribeToOperations } from "../../services/operations.service";
 import "./OperationsDashboard.css";
 
 const MASQUERADE_ALIASES = ["masquerade-2026", "masquerade_mku_2026"];
 const INACTIVE_STATUSES = ["refunded", "cancelled", "revoked"];
 
-const eventOptions = events.map((event) => ({
-  ...event,
-  aliases: event.id === "masquerade-2026" ? MASQUERADE_ALIASES : [event.id],
-}));
+const EMPTY_EVENT = {
+  id: "",
+  title: "Loading events",
+  area: "",
+  venue: "",
+  date: "",
+  aliases: [],
+};
 
 const money = (value = 0) => new Intl.NumberFormat("en-KE", {
   style: "currency",
@@ -56,6 +60,9 @@ function OperationsDashboard() {
   const [operations, setOperations] = useState({
     payments: [], tickets: [], requests: [], scans: [], loading: true, updatedAt: null,
   });
+  const [ticketSearch, setTicketSearch] = useState("");
+  const [eventOptions, setEventOptions] = useState([]);
+  const [catalogError, setCatalogError] = useState("");
   const [connectionError, setConnectionError] = useState("");
 
   useEffect(() => subscribeToOperations((data) => {
@@ -65,6 +72,27 @@ function OperationsDashboard() {
     console.error(`Live ${source} subscription failed:`, error);
     setConnectionError(`Live ${source} data could not be loaded. Check this admin's Firestore permissions.`);
   }), []);
+
+  useEffect(() => {
+    let active = true;
+    getEvents().then((catalog) => {
+      if (!active) return;
+      setEventOptions(catalog.map((event) => ({
+        ...event,
+        aliases: [...new Set([
+          event.id,
+          ...(event.legacyIds || []),
+          ...(event.id === "masquerade-2026" ? MASQUERADE_ALIASES : []),
+        ])],
+      })));
+      setCatalogError("");
+    }).catch((error) => {
+      if (!active) return;
+      console.error("Admin event catalog failed:", error);
+      setCatalogError(error.message || "The event catalog could not be loaded.");
+    });
+    return () => { active = false; };
+  }, []);
 
   const selectEvent = (eventId) => {
     setSelectedEventId(eventId);
@@ -77,9 +105,9 @@ function OperationsDashboard() {
     return eventOptions.filter((event) =>
       event.aliases.some((eventId) => permittedIds.includes(eventId))
     );
-  }, [adminProfile]);
+  }, [adminProfile, eventOptions]);
 
-  const selectedEvent = availableEvents.find((event) => event.id === selectedEventId) || availableEvents[0] || eventOptions[0];
+  const selectedEvent = availableEvents.find((event) => event.id === selectedEventId) || availableEvents[0] || eventOptions[0] || EMPTY_EVENT;
 
   const report = useMemo(() => {
     const aliases = selectedEvent.aliases;
@@ -220,6 +248,47 @@ function OperationsDashboard() {
   const maxTicketAdmissions = Math.max(...report.ticketTypes.map((item) => item.admissions), 1);
   const alertCount = report.pendingPayments + report.failedPayments + report.paidWithoutTicket +
     INACTIVE_STATUSES.reduce((total, status) => total + Number(report.lifecycle[status] || 0), 0);
+  const searchResults = useMemo(() => {
+    const term = ticketSearch.trim().toLowerCase();
+    if (!term) return [];
+
+    const paymentsById = new Map();
+    const paymentsByTicketId = new Map();
+    report.payments.forEach((payment) => {
+      paymentsById.set(payment.id, payment);
+      if (payment.checkoutRequestID) paymentsById.set(payment.checkoutRequestID, payment);
+      if (payment.ticketId) paymentsByTicketId.set(payment.ticketId, payment);
+    });
+
+    return report.tickets.map((ticket) => {
+      const payment = paymentsById.get(ticket.paymentId) ||
+        paymentsById.get(ticket.checkoutRequestID) ||
+        paymentsByTicketId.get(ticket.id) || null;
+      const searchableValues = [
+        ticket.ticketCode,
+        ticket.id,
+        ticket.orderId,
+        ticket.phone,
+        ticket.mpesaCode,
+        ticket.mpesaReceiptNumber,
+        ticket.checkoutRequestID,
+        ticket.attendee?.firstName,
+        ticket.attendee?.lastName,
+        `${ticket.attendee?.firstName || ""} ${ticket.attendee?.lastName || ""}`,
+        ticket.attendee?.phone,
+        ticket.attendee?.email,
+        payment?.phone,
+        payment?.paidPhone,
+        payment?.mpesaReceiptNumber,
+        payment?.checkoutRequestID,
+        payment?.merchantRequestID,
+      ];
+
+      return { ticket, payment, matches: searchableValues.some((value) =>
+        String(value || "").toLowerCase().includes(term)
+      ) };
+    }).filter((result) => result.matches).slice(0, 20);
+  }, [report.payments, report.tickets, ticketSearch]);
 
   return (
     <main className="operations-dashboard">
@@ -239,13 +308,62 @@ function OperationsDashboard() {
         </select>
         <div>
           <strong>{selectedEvent.title}</strong>
-          <span>{new Intl.DateTimeFormat("en-KE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(selectedEvent.date))} · {selectedEvent.venue}</span>
+          <span>{selectedEvent.date ? new Intl.DateTimeFormat("en-KE", { dateStyle: "medium", timeStyle: "short" }).format(new Date(selectedEvent.date)) : "Event catalog loading"}{selectedEvent.venue ? ` · ${selectedEvent.venue}` : ""}</span>
           <code>{selectedEvent.id}</code>
         </div>
       </section>
 
       {connectionError && <p className="operations-error" role="alert">{connectionError}</p>}
+      {catalogError && <p className="operations-error" role="alert">{catalogError}</p>}
       {operations.loading && <p className="operations-loading">Connecting to live event records…</p>}
+
+      <section className={`ticket-search${ticketSearch.trim() ? " ticket-search--active" : ""}`}>
+        <div className="ticket-search-control">
+          <label htmlFor="ticket-search">Find a ticket</label>
+          <div>
+            <input
+              id="ticket-search"
+              type="search"
+              value={ticketSearch}
+              onChange={(event) => setTicketSearch(event.target.value)}
+              placeholder="Name, phone, ticket code or M-Pesa receipt"
+              autoComplete="off"
+            />
+            {ticketSearch && <button type="button" onClick={() => setTicketSearch("")}>Clear</button>}
+          </div>
+        </div>
+
+        {ticketSearch.trim() && <div className="ticket-search-results" aria-live="polite">
+          <div className="ticket-search-summary">
+            <span>{searchResults.length} {searchResults.length === 1 ? "ticket" : "tickets"} found</span>
+            <span>{selectedEvent.title}</span>
+          </div>
+          {searchResults.length === 0 ? <p>No ticket matches “{ticketSearch.trim()}” for this event.</p> : searchResults.map(({ ticket, payment }) => (
+            <article key={ticket.id}>
+              <header>
+                <div>
+                  <span>{ticket.ticket?.name || "Admission"}</span>
+                  <h2>{`${ticket.attendee?.firstName || ""} ${ticket.attendee?.lastName || ""}`.trim() || "Ticket holder"}</h2>
+                  <code>{ticket.ticketCode || ticket.id}</code>
+                </div>
+                <strong className={`ledger-status ledger-status--${ticketStatus(ticket)}`}>{ticketStatus(ticket)}</strong>
+              </header>
+              <dl>
+                <div><dt>Phone</dt><dd>{ticket.attendee?.phone || ticket.phone || payment?.paidPhone || payment?.phone || "Not provided"}</dd></div>
+                <div><dt>M-Pesa receipt</dt><dd>{ticket.mpesaReceiptNumber || payment?.mpesaReceiptNumber || ticket.mpesaCode || "Not recorded"}</dd></div>
+                <div><dt>Payment</dt><dd>{payment?.status || (ticket.mpesaReceiptNumber ? "paid" : "Not linked")}</dd></div>
+                <div><dt>Amount</dt><dd>{money(payment?.amountPaid ?? payment?.amount ?? ticketValue(ticket))}</dd></div>
+                <div><dt>Quantity</dt><dd>{ticket.quantity || 1}</dd></div>
+                <div><dt>Order / checkout</dt><dd>{ticket.orderId || ticket.checkoutRequestID || payment?.checkoutRequestID || "Not recorded"}</dd></div>
+                <div><dt>First scanned</dt><dd>{formatDateTime(ticket.scannedAt)}</dd></div>
+                <div><dt>Scanned by</dt><dd>{ticket.scannedBy?.name || ticket.scannedBy?.email || "Not scanned"}</dd></div>
+                <div><dt>Scan attempts</dt><dd>{ticket.scanAttempts || 0}</dd></div>
+                <div><dt>Issued</dt><dd>{formatDateTime(ticket.issuedAt || ticket.createdAt)}</dd></div>
+              </dl>
+            </article>
+          ))}
+        </div>}
+      </section>
 
       <section className="operations-kpis" aria-label="Primary event metrics">
         <article><span>Confirmed revenue</span><strong>{money(report.confirmedRevenue)}</strong><small>{report.paidPayments} successful payments</small></article>

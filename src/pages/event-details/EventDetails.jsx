@@ -1,6 +1,6 @@
-import { useLayoutEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { events } from "../../data/events";
+import { getEvent } from "../../services/events.service";
 import Button from "../../components/ui/Button";
 import { saveEventToCalendar } from "../../utils/calendar";
 import "./EventDetails.css";
@@ -18,19 +18,43 @@ const Icon = ({ name }) => {
 function EventDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [event, setEvent] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [selectedId, setSelectedId] = useState("");
+  const [quantity, setQuantity] = useState(1);
+  const orderSummaryRef = useRef(null);
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
   }, [id]);
 
-  const event = events.find((item) => item.id === id);
   const ticketOptions = useMemo(() => event?.tickets || [{ id: "general", name: "General admission", price: event?.priceFrom || 0, availability: "sold out" }], [event]);
-  const firstAvailable = ticketOptions.find((ticket) => ticket.availability?.toLowerCase() !== "sold out");
-  const [selectedId, setSelectedId] = useState(firstAvailable?.id || "");
-  const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    let active = true;
+    getEvent(id).then((loadedEvent) => {
+      if (!active) return;
+      setEvent(loadedEvent);
+      setSelectedId("");
+      setQuantity(1);
+    }).catch((error) => {
+      if (!active) return;
+      console.error("Event load failed:", error);
+      setEvent(null);
+      setLoadError(error.message || "Event not found.");
+    }).finally(() => {
+      if (active) setLoading(false);
+    });
+    return () => { active = false; };
+  }, [id]);
+
+  if (loading || (event && event.id !== id)) {
+    return <main className="details-page details-not-found"><p>Loading event…</p></main>;
+  }
 
   if (!event) {
-    return <main className="details-page details-not-found"><p>Event not found.</p><Link to="/">Return home</Link></main>;
+    return <main className="details-page details-not-found"><p>{loadError || "Event not found."}</p><Link to="/">Return home</Link></main>;
   }
 
   const selectedTicket = ticketOptions.find((ticket) => ticket.id === selectedId);
@@ -41,9 +65,14 @@ function EventDetails() {
   const money = (value) => `KSh ${value.toLocaleString("en-KE")}`;
 
   const selectTicket = (ticket) => {
-    if (ticket.availability?.toLowerCase() === "sold out") return;
+    if (["sold out", "sold_out"].includes(String(ticket.availability).toLowerCase())) return;
     setSelectedId(ticket.id);
     setQuantity(1);
+    if (window.matchMedia("(max-width: 959px)").matches) {
+      window.requestAnimationFrame(() => {
+        orderSummaryRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
   };
 
   const quickBuy = () => navigate("/checkout", { state: { event, ticket: selectedTicket, quantity, total } });
@@ -63,12 +92,10 @@ function EventDetails() {
       <div className="details-shell">
         <div className="details-content">
           <section className="event-intro">
-            <p className="details-eyebrow">Event details</p>
             <div className="event-intro-heading">
-              <h2>One night.<br />Remember everything.</h2>
+              <p className="details-eyebrow">Event details</p>
               <Button className="calendar-button" onClick={() => saveEventToCalendar(event)}><Icon name="calendar" />Save to calendar</Button>
             </div>
-            <p className="event-description">{event.description || `Join us for ${event.title}, a carefully selected TickoMag experience in ${event.area}.`}</p>
             <div className="event-facts">
               <div><Icon name="calendar" /><span><small>Date</small>{fullDate}</span></div>
               <div><Icon name="clock" /><span><small>Time</small>{time}{event.endTime ? ` — ${event.endTime}` : ""}</span></div>
@@ -80,7 +107,7 @@ function EventDetails() {
             <div className="ticket-heading"><div><p className="details-eyebrow">Tickets</p><h2>Choose your entry</h2></div><span>Prices in KES</span></div>
             <div className="ticket-list">
               {ticketOptions.map((ticket) => {
-                const soldOut = ticket.availability?.toLowerCase() === "sold out";
+                const soldOut = ["sold out", "sold_out"].includes(String(ticket.availability).toLowerCase());
                 const selected = ticket.id === selectedId;
                 return (
                   <button key={ticket.id} className={`ticket-option${selected ? " selected" : ""}${soldOut ? " sold-out" : ""}`} disabled={soldOut} onClick={() => selectTicket(ticket)}>
@@ -95,14 +122,14 @@ function EventDetails() {
           </section>
         </div>
 
-        <aside className="order-summary">
+        <aside ref={orderSummaryRef} className={`order-summary${selectedTicket ? " order-summary--ready" : ""}`}>
           <p className="details-eyebrow">Your order</p>
           <h2>Order summary</h2>
           <div className="summary-event"><img src={event.image} alt="" /><div><strong>{event.title}</strong><span>{fullDate}</span></div></div>
           <div className="summary-row"><span>Ticket</span><strong>{selectedTicket?.name || "Select a ticket"}</strong></div>
           <div className="summary-row quantity-row">
             <span>Quantity</span>
-            <div className="quantity-selector"><button aria-label="Decrease quantity" onClick={() => setQuantity((value) => Math.max(1, value - 1))}>−</button><strong>{quantity}</strong><button aria-label="Increase quantity" onClick={() => setQuantity((value) => Math.min(10, value + 1))}>+</button></div>
+            <div className="quantity-selector"><button disabled={!selectedTicket} aria-label="Decrease quantity" onClick={() => setQuantity((value) => Math.max(1, value - 1))}>−</button><strong>{selectedTicket ? quantity : "—"}</strong><button disabled={!selectedTicket} aria-label="Increase quantity" onClick={() => setQuantity((value) => Math.min(10, value + 1))}>+</button></div>
           </div>
           <div className="summary-total"><span>Total</span><strong>{money(total)}</strong></div>
           <Button className="quick-buy" variant="primary" disabled={!selectedTicket} onClick={quickBuy}>Quick buy <Icon name="arrow" /></Button>

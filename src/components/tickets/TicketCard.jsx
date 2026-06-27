@@ -15,13 +15,14 @@ const formatDate = (value) => {
 
 const TicketCard = forwardRef(function TicketCard({ ticket }, ref) {
   const attendeeName = `${ticket.attendee?.firstName || ""} ${ticket.attendee?.lastName || ""}`.trim();
+  const isValid = (ticket.status || "active") === "active" && (ticket.scanStatus || "valid") === "valid";
 
   return (
     <article ref={ref} className="issued-ticket-card">
       <div className="ticket-cut-edge"><span>Cut here</span></div>
       <QRCodeDisplay payload={ticket.qrPayload} ticketCode={ticket.ticketCode} />
       <div className="ticket-card-copy">
-        <div className="ticket-card-topline"><span>Admit {ticket.quantity || 1}</span><strong>Valid ticket</strong></div>
+        <div className="ticket-card-topline"><span>Admit {ticket.quantity || 1}</span><strong>{isValid ? "Valid ticket" : String(ticket.scanStatus || ticket.status).replaceAll("_", " ")}</strong></div>
         <p>TickoMag presents</p>
         <h2>{ticket.event?.title || "Event ticket"}</h2>
         <dl>

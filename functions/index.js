@@ -3,6 +3,7 @@ const express = require("express");
 
 const mpesaRoutes = require("./routes/mpesa.routes");
 const ticketRoutes = require("./routes/ticket.routes");
+const eventRoutes = require("./routes/event.routes");
 
 const app = express();
 
@@ -24,5 +25,7 @@ app.use("/api/mpesa", mpesaRoutes);
 app.use("/mpesa", mpesaRoutes);
 app.use("/api/tickets", ticketRoutes);
 app.use("/tickets", ticketRoutes);
+app.use("/api/events", eventRoutes);
+app.use("/events", eventRoutes);
 
-exports.api = onRequest(app);
+exports.api = onRequest({ invoker: "public" }, app);

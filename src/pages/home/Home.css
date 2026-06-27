@@ -4,6 +4,7 @@
    ================================================================ */
 
 main { background: var(--ink); }
+.home-catalog-state { display: grid; min-height: 100vh; place-items: center; color: var(--muted); }
 
 .hero {
   position: relative;
@@ -26,6 +27,11 @@ main { background: var(--ink); }
 .hero-actions .ui-button { min-width: 0; flex: 1; gap: 10px; padding-inline: 12px; white-space: nowrap; }
 .hero-save-button { display: inline-flex; }
 .hero-count { display: none; }
+.hero-carousel-controls { position: absolute; z-index: 4; right: 18px; bottom: 18px; display: flex; align-items: center; gap: 11px; }
+.hero-carousel-controls > button { display: grid; width: 34px; height: 34px; padding: 0; place-items: center; color: #fff; border: 1px solid rgb(255 255 255 / 42%); border-radius: 50%; background: rgb(0 0 0 / 38%); backdrop-filter: blur(10px); cursor: pointer; }
+.hero-carousel-controls > div { display: flex; gap: 5px; }
+.hero-carousel-controls > div button { width: 18px; height: 3px; padding: 0; border: 0; border-radius: 0; background: rgb(255 255 255 / 38%); cursor: pointer; }
+.hero-carousel-controls > div button.active { background: var(--acid); }
 
 .discover { padding: 74px 18px 40px; }
 .section-intro h2, .weekend-callout h2 { margin: 0; font-size: clamp(2.7rem, 13vw, 4.8rem); line-height: .94; letter-spacing: -.055em; }
@@ -74,7 +80,7 @@ main { background: var(--ink); }
 .round-link svg { width: 21px; }
 
 @keyframes content-up { from { opacity: 0; transform: translateY(28px); } }
-@keyframes hero-breathe { from { scale: 1.12; } to { scale: 1.035; } }
+@keyframes hero-breathe { 0% { opacity: 0; scale: 1.12; } 9% { opacity: 1; } 100% { opacity: 1; scale: 1.035; } }
 @keyframes card-in { from { opacity: 0; transform: translateY(20px); } }
 
 /* ================================================================
@@ -106,6 +112,7 @@ main { background: var(--ink); }
   .hero-count b { font-size: .75rem; }
   .hero-count span { width: 62px; height: 1px; background: #fff; }
   .hero-count small { color: #777; }
+  .hero-carousel-controls { right: clamp(40px, 5vw, 82px); bottom: 112px; }
   .discover { display: grid; grid-template-columns: 1fr minmax(400px, .82fr); column-gap: 8vw; align-items: end; max-width: 1440px; margin: 0 auto; padding: 120px clamp(40px, 6vw, 92px) 54px; }
   .search-box { margin: 0 0 5px; }
   .search-box > span { display: inline; color: #777; font-family: monospace; font-size: .68rem; }

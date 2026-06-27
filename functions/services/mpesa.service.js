@@ -66,24 +66,6 @@ async function stkPush(phone, amount, accountReference) {
   const token = await getAccessToken();
   const timestamp = getMpesaTimestamp();
 
-  // DEBUG LOGS
-
-  console.log("Shortcode:", config.shortcode);
-
-  console.log("Passkey:", config.passkey);
-
-  console.log("Callback URL:", config.callbackUrl);
-
-  console.log("Timestamp:", timestamp);
-
-  console.log(
-
-    "Password Source:",
-
-    config.shortcode + config.passkey + timestamp
-
-  );
-
   const password = Buffer.from(
     config.shortcode + config.passkey + timestamp
   ).toString("base64");

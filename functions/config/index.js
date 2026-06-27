@@ -4,6 +4,6 @@ const sandbox = require("./sandbox");
 const production = require("./production");
 
 
-const env = process.env.NODE_ENV || "sandbox";
+const env = process.env.MPESA_ENV || "sandbox";
 
 module.exports = env === "production" ? production : sandbox;

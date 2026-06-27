@@ -1,0 +1,24 @@
+.my-tickets-page { min-height: 100vh; padding: 112px 16px 80px; color: var(--paper); background: #090909; }
+.my-tickets-hero { max-width: 760px; margin: 0 auto; }
+.my-tickets-hero > a { color: #8c8c86; font-size: .62rem; font-weight: 700; }
+.my-tickets-hero > p { margin: 42px 0 10px; color: var(--acid); font-size: .59rem; font-weight: 800; text-transform: uppercase; letter-spacing: .12em; }
+.my-tickets-hero h1 { margin: 0; font-size: clamp(3.1rem, 15vw, 6.5rem); line-height: .85; letter-spacing: 0; }
+.my-tickets-hero h1 em { color: var(--acid); font-family: Georgia, serif; font-weight: 400; }
+.my-tickets-hero > span { display: block; max-width: 570px; margin-top: 22px; color: #92928c; font-size: .72rem; line-height: 1.6; }
+.ticket-lookup-panel { max-width: 760px; margin: 38px auto 0; border: 1px solid #30302d; background: #111; }
+.ticket-lookup-panel form { display: grid; gap: 9px; padding: 18px; }
+.ticket-lookup-panel label { color: #777771; font-size: .53rem; font-weight: 800; text-transform: uppercase; letter-spacing: .09em; }
+.ticket-lookup-panel form > div { display: grid; gap: 9px; }
+.ticket-lookup-panel input { min-width: 0; height: 54px; padding: 0 14px; color: var(--acid); border: 1px solid #3a3a36; border-radius: 0; outline: none; background: #090909; font: 700 .8rem monospace; text-transform: uppercase; }
+.ticket-lookup-panel input:focus { border-color: var(--acid); }
+.ticket-lookup-panel small { color: #ff8179; font-size: .61rem; }
+.my-ticket-result { display: grid; justify-items: center; gap: 16px; max-width: 760px; margin: 38px auto 0; }
+.my-ticket-status { display: flex; align-items: center; justify-content: space-between; gap: 18px; width: min(100%, 440px); }
+.my-ticket-status button { padding: 0; color: var(--acid); border: 0; background: none; font-size: .58rem; font-weight: 700; cursor: pointer; }
+.my-ticket-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; width: min(100%, 440px); }
+
+@media (min-width: 650px) {
+  .my-tickets-page { padding: 140px 30px 100px; }
+  .ticket-lookup-panel form > div { grid-template-columns: minmax(0, 1fr) auto; }
+  .ticket-lookup-panel .ui-button { min-width: 150px; }
+}

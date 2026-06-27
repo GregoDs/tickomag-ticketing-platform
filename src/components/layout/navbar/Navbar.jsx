@@ -44,7 +44,7 @@ function Navbar() {
         </nav>
         <div className="nav-actions">
           <button className="icon-button desktop-only" aria-label="Search"><Icon name="search" /></button>
-          <Link className="account-button" to=""><Icon name="user" /><span></span></Link>
+          <Link className="account-button" to="/my-tickets"><Icon name="user" /><span></span></Link>
           <button
             className="icon-button mobile-only menu-toggle"
             aria-label={menuOpen ? "Close menu" : "Open menu"}
@@ -62,7 +62,7 @@ function Navbar() {
           <Link to="/#discover" onClick={closeMenu}><small>01</small>Discover</Link>
           <Link to="/#popular" onClick={closeMenu}><small>02</small>Events</Link>
           <Link to="/#weekend" onClick={closeMenu}><small>03</small>This weekend</Link>
-          <Link to="/pending-approval" onClick={closeMenu}><small>04</small>My tickets</Link>
+          <Link to="/my-tickets" onClick={closeMenu}><small>04</small>My tickets</Link>
         </nav>
         <div className="mobile-menu-footer">
           <span>Nairobi, KE</span>
