@@ -1,0 +1,75 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function activeAdmin() {
+      return signedIn()
+        && get(
+          /databases/$(database)/documents/admins/$(request.auth.uid)
+        ).data.role == "admin"
+        && get(
+          /databases/$(database)/documents/admins/$(request.auth.uid)
+        ).data.active != false;
+    }
+
+    match /admins/{userId} {
+      allow get: if signedIn() && request.auth.uid == userId;
+      allow list, create, update, delete: if false;
+    }
+
+    match /events/{eventId} {
+      allow read: if activeAdmin();
+      allow write: if false;
+    }
+
+    match /requestStatuses/{statusId} {
+      allow get: if true;
+      allow list: if activeAdmin();
+      allow create, update: if activeAdmin();
+      allow delete: if false;
+    }
+
+    match /ticketRequests/{requestId} {
+      allow read, create, update: if activeAdmin();
+      allow delete: if false;
+    }
+
+    match /tickets/{ticketId} {
+      allow read, create, update: if activeAdmin();
+      allow delete: if false;
+    }
+
+    match /approvedPaymentReferences/{referenceId} {
+      allow read, create, update: if activeAdmin();
+      allow delete: if false;
+    }
+
+    match /manualMpesaPaymentLookups/{referenceId} {
+      allow read: if activeAdmin();
+      allow write: if false;
+    }
+
+    match /mpesaPayments/{paymentId} {
+      allow read: if activeAdmin();
+      allow write: if false;
+    }
+
+    match /mpesaCallbacks/{callbackId} {
+      allow read: if activeAdmin();
+      allow write: if false;
+    }
+
+    match /ticketScans/{scanId} {
+      allow read: if activeAdmin();
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
