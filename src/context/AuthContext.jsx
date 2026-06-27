@@ -6,12 +6,14 @@ import { AuthContext } from "./auth-context";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
+  const [adminProfile, setAdminProfile] = useState(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => onIdTokenChanged(auth, async (currentUser) => {
     if (!currentUser) {
       setUser(null);
+      setAdminProfile(null);
       setIsAdmin(false);
       setLoading(false);
       return;
@@ -22,15 +24,18 @@ export function AuthProvider({ children }) {
       if (!adminProfile) {
         await signOutAdmin();
         setUser(null);
+        setAdminProfile(null);
         setIsAdmin(false);
         return;
       }
 
       setUser(currentUser);
+      setAdminProfile(adminProfile);
       setIsAdmin(true);
     } catch (error) {
       console.error("Unable to verify administrator session:", error);
       setUser(null);
+      setAdminProfile(null);
       setIsAdmin(false);
     } finally {
       setLoading(false);
@@ -38,19 +43,21 @@ export function AuthProvider({ children }) {
   }), []);
 
   const login = useCallback(async (email, password) => {
-    const adminUser = await signInAdmin(email, password);
+    const { user: adminUser, profile } = await signInAdmin(email, password);
     setUser(adminUser);
+    setAdminProfile(profile);
     setIsAdmin(true);
     return adminUser;
   }, []);
 
   const value = useMemo(() => ({
     user,
+    adminProfile,
     isAdmin,
     loading,
     login,
     logout: signOutAdmin,
-  }), [user, isAdmin, loading, login]);
+  }), [user, adminProfile, isAdmin, loading, login]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

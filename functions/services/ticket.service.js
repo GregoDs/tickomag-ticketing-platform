@@ -80,6 +80,9 @@ async function confirmPayment({
       qrPayload,
       status: "active",
       scanStatus: "valid",
+      scanAttempts: 0,
+      scannedAt: null,
+      scannedBy: null,
       createdAt: FieldValue.serverTimestamp(),
     });
 

@@ -1,9 +1,13 @@
-const localFunctionsHost =
-  typeof window === "undefined" ? "127.0.0.1" : window.location.hostname;
+const DEVELOPMENT_API_URL =
+  "/functions-api/tickomag/us-central1/api";
 
 const API_BASE_URL =
   import.meta.env.VITE_MPESA_API_BASE_URL ||
-  `http://${localFunctionsHost}:5001/tickomag/us-central1/api/mpesa`;
+  `${DEVELOPMENT_API_URL}/mpesa`;
+
+export const FUNCTIONS_API_URL =
+  import.meta.env.VITE_FUNCTIONS_API_URL ||
+  DEVELOPMENT_API_URL;
 
 async function parseResponse(response) {
   const payload = await response.json().catch(() => ({}));

@@ -24,7 +24,10 @@ export async function signInAdmin(email, password) {
     throw new Error("This account does not have administrator access.");
   }
 
-  return credential.user;
+  return {
+    user: credential.user,
+    profile: adminProfile,
+  };
 }
 
 export function signOutAdmin() {

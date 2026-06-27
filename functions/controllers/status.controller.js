@@ -50,6 +50,9 @@ function publicTicket(ticketId, ticketData) {
     quantity: ticketData.quantity || null,
     total: ticketData.total || null,
     orderId: ticketData.orderId || null,
+    scannedAt: timestampToJson(ticketData.scannedAt),
+    scannedBy: ticketData.scannedBy || null,
+    scanAttempts: Number(ticketData.scanAttempts || 0),
     createdAt: timestampToJson(ticketData.createdAt),
   };
 }

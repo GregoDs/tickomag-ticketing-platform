@@ -273,7 +273,11 @@ export async function reviewTicketRequest(requestId, decision, adminUser) {
         ticketCode,
         scanToken,
         qrPayload,
+        status: "active",
         scanStatus: "valid",
+        scanAttempts: 0,
+        scannedAt: null,
+        scannedBy: null,
         issuedAt: reviewedAt,
         issuedBy: adminUser.uid,
       });
@@ -309,7 +313,16 @@ export async function issueLegacyApprovedTicket(requestId) {
     const statusReferenceId = await hashValue(`${mpesaCode.trim().toUpperCase()}:${normalizedPhone}`);
     const updatedAt = serverTimestamp();
 
-    transaction.update(ticketRef, { ticketCode, scanToken, qrPayload });
+    transaction.update(ticketRef, {
+      ticketCode,
+      scanToken,
+      qrPayload,
+      status: ticketData.status || "active",
+      scanStatus: ticketData.scanStatus || "valid",
+      scanAttempts: Number(ticketData.scanAttempts || 0),
+      scannedAt: ticketData.scannedAt || null,
+      scannedBy: ticketData.scannedBy || null,
+    });
     transaction.update(requestRef, { ticketCode, ticketStatus: "issued", updatedAt });
     transaction.set(doc(db, "requestStatuses", statusReferenceId), {
       requestId,

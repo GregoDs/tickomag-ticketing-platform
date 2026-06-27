@@ -16,8 +16,10 @@ function AdminLayout() {
       <aside className="admin-sidebar">
         <NavLink className="admin-wordmark" to="/admin">ticko<span>mag</span><i>.</i></NavLink>
         <nav aria-label="Admin navigation">
-          <NavLink end to="/admin"><span>01</span>Requests</NavLink>
-          <NavLink to="/"><span>02</span>View website</NavLink>
+          <NavLink end to="/admin"><span>01</span>Dashboard</NavLink>
+          <NavLink to="/admin/requests"><span>02</span>Requests</NavLink>
+          <NavLink to="/admin/scanner"><span>03</span>Scanner</NavLink>
+          <NavLink to="/"><span>04</span>View website</NavLink>
         </nav>
         <div className="admin-profile">
           <span>Signed in as</span>

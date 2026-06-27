@@ -7,7 +7,9 @@ import PaymentSuccess from "../pages/checkout/PaymentSuccess";
 import PendingApproval from "../pages/checkout/PendingApproval";
 import Ticket from "../pages/checkout/Ticket";
 import AdminDashboard from "../pages/admin/AdminDashboard";
+import OperationsDashboard from "../pages/admin/OperationsDashboard";
 import AdminLogin from "../pages/admin/AdminLogin";
+import Scanner from "../pages/admin/Scanner";
 import AdminLayout from "../components/layout/AdminLayout";
 import Navbar from "../components/layout/navbar/Navbar";
 import Footer from "../components/layout/footer/Footer";
@@ -30,7 +32,9 @@ function AppContent() {
         <Route path="/ticket" element={<Ticket />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<ProtectedRoute><AdminLayout /></ProtectedRoute>}>
-          <Route index element={<AdminDashboard />} />
+          <Route index element={<OperationsDashboard />} />
+          <Route path="requests" element={<AdminDashboard />} />
+          <Route path="scanner" element={<Scanner />} />
         </Route>
       </Routes>
       {!isAdminRoute && <Footer />}
