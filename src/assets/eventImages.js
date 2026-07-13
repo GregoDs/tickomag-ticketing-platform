@@ -4,7 +4,7 @@ import nairobiAfterHours from "./events_img/nairobi-afterhours.avif";
 import vinylAndCoffee from "./events_img/vinyl&coffee.avif";
 import laughTrackLive from "./events_img/laughtrack.avif";
 import madeInNairobi from "./events_img/nairobi-market.avif";
-import fashion from "./events_img/masquerade-girl.webp";
+import fashion from "./events_img/ken-s-vision-kIUkbwXnvRU-unsplash.jpg";
 
 export const eventImages = {
   masquerade,

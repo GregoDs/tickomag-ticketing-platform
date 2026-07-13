@@ -2,6 +2,7 @@ import { eventImages } from "../assets/eventImages";
 import { FUNCTIONS_API_URL } from "./mpesa.service";
 
 let eventListRequest;
+const eventCache = new Map();
 
 function hydrateEvent(event) {
   return {
@@ -23,6 +24,10 @@ export async function getEvents() {
     eventListRequest = fetch(`${FUNCTIONS_API_URL}/events`)
       .then(parseResponse)
       .then((payload) => payload.data.events.map(hydrateEvent))
+      .then((events) => {
+        events.forEach((event) => eventCache.set(event.id, event));
+        return events;
+      })
       .catch((error) => {
         eventListRequest = undefined;
         throw error;
@@ -32,8 +37,14 @@ export async function getEvents() {
 }
 
 export async function getEvent(eventId) {
+  if (eventCache.has(eventId)) {
+    return eventCache.get(eventId);
+  }
+
   const payload = await fetch(
     `${FUNCTIONS_API_URL}/events/${encodeURIComponent(eventId)}`
   ).then(parseResponse);
-  return hydrateEvent(payload.data.event);
+  const event = hydrateEvent(payload.data.event);
+  eventCache.set(event.id, event);
+  return event;
 }

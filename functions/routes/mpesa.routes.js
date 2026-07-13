@@ -9,7 +9,7 @@ const router = express.Router();
 const stkPushRateLimit = createRateLimiter({
   name: "mpesa-stk-push",
   limit: 5,
-  windowMs: 15 * 1000,
+  windowMs:  10 * 60 * 1000,
 });
 
 router.post("/stk-push", stkPushRateLimit, initiateStkPush);
