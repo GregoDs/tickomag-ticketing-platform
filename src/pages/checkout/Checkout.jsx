@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Button from "../../components/ui/Button";
+import Spinner from "../../components/ui/Spinner";
 import { initiateMpesaPayment } from "../../services/mpesa.service";
 import "./Checkout.css";
 
@@ -161,10 +162,20 @@ function Checkout() {
               <li><span>3</span>Your ticket is issued immediately after we confirm payment.</li>
               <li><span>4</span>The next screen updates itself and shows your QR ticket.</li>
             </ol>
+            {isPaying && (
+              <div className="stk-wait-panel" role="status" aria-live="polite">
+                <div>
+                  <Spinner label="Sending STK prompt" />
+                  <strong>Check your phone</strong>
+                  <p>We are securely contacting M-Pesa. Keep this page open while the prompt is sent.</p>
+                </div>
+                <div className="stk-wait-progress" aria-hidden="true"><i /></div>
+              </div>
+            )}
             {paymentError && <small className="checkout-payment-error" role="alert">{paymentError}</small>}
           </section>
 
-          <Button className="checkout-submit" variant="primary" type="submit" disabled={isPaying}>{isPaying ? "Sending STK prompt…" : "Make payment"} <span>→</span></Button>
+          <Button className="checkout-submit" variant="primary" type="submit" disabled={isPaying}>{isPaying ? "Sending prompt" : "Make payment"} <span>→</span></Button>
         </form>
       </div>
     </main>

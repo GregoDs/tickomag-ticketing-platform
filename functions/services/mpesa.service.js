@@ -1,5 +1,13 @@
 const axios = require("axios");
+const https = require("https");
 const config = require("../config");
+
+const MPESA_REQUEST_TIMEOUT_MS = 15000;
+const TOKEN_EXPIRY_BUFFER_MS = 5 * 60 * 1000;
+const httpsAgent = new https.Agent({ keepAlive: true });
+let cachedAccessToken = null;
+let accessTokenExpiresAt = 0;
+let accessTokenRequest = null;
 
 function assertMpesaConfig() {
   const requiredConfig = [
@@ -31,21 +39,39 @@ function assertMpesaConfig() {
 async function getAccessToken() {
   assertMpesaConfig();
 
+  if (cachedAccessToken && Date.now() < accessTokenExpiresAt) {
+    return cachedAccessToken;
+  }
+
+  if (accessTokenRequest) {
+    return accessTokenRequest;
+  }
+
   const auth = Buffer.from(
     `${config.consumerKey}:${config.consumerSecret}`
   ).toString("base64");
 
 
-  const response = await axios.get(
+  accessTokenRequest = axios.get(
     `${config.baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
     {
+      httpsAgent,
+      timeout: MPESA_REQUEST_TIMEOUT_MS,
       headers: {
         Authorization: `Basic ${auth}`,
       },
     }
-  );
-  
-  return response.data.access_token;
+  ).then((response) => {
+    const expiresInSeconds = Number(response.data.expires_in || 3600);
+    cachedAccessToken = response.data.access_token;
+    accessTokenExpiresAt =
+      Date.now() + (expiresInSeconds * 1000) - TOKEN_EXPIRY_BUFFER_MS;
+    return cachedAccessToken;
+  }).finally(() => {
+    accessTokenRequest = null;
+  });
+
+  return accessTokenRequest;
 }
 
 function getMpesaTimestamp(date = new Date()) {
@@ -92,6 +118,8 @@ console.log(payload);
     `${config.baseUrl}/mpesa/stkpush/v1/processrequest`,
     payload,
     {
+      httpsAgent,
+      timeout: MPESA_REQUEST_TIMEOUT_MS,
       headers: {
         Authorization: `Bearer ${token}`,
       },

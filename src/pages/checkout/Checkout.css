@@ -27,6 +27,13 @@
 .payment-steps { display: grid; gap: 18px; margin: 34px 0 0; padding: 0; list-style: none; }
 .payment-steps li { display: grid; grid-template-columns: 25px 1fr; gap: 11px; align-items: center; color: #aaa9a4; font-size: .72rem; line-height: 1.5; }
 .payment-steps span { display: grid; place-items: center; width: 25px; height: 25px; border: 1px solid #3b3b38; border-radius: 50%; color: var(--acid); font-size: .55rem; }
+.stk-wait-panel { display: grid; gap: 16px; margin-top: 24px; padding: 18px; border: 1px solid rgb(233 255 112 / 32%); background: #171812; }
+.stk-wait-panel > div:first-child { display: grid; gap: 9px; }
+.stk-wait-panel .ui-spinner { color: var(--acid); font-size: .6rem; font-weight: 800; text-transform: uppercase; letter-spacing: .11em; }
+.stk-wait-panel strong { font-size: 1.05rem; letter-spacing: -.02em; }
+.stk-wait-panel p { margin: 0; color: #aaa9a4; font-size: .7rem; line-height: 1.55; }
+.stk-wait-progress { height: 3px; overflow: hidden; background: #30302d; }
+.stk-wait-progress i { display: block; width: 42%; height: 100%; background: var(--acid); animation: stk-wait-slide 1.15s ease-in-out infinite; }
 .checkout-payment-error { display: block; margin-top: 18px; color: #ff7770; font-size: .65rem; line-height: 1.5; }
 .checkout-submit.ui-button { justify-content: space-between; width: 100%; min-height: 58px; margin-top: 6px; }
 .checkout-submit.ui-button:focus { outline: 2px solid var(--acid); outline-offset: 4px; }
@@ -74,4 +81,9 @@
   .checkout-header, .checkout-shell { max-width: 1380px; }
   .checkout-shell { grid-template-columns: minmax(0, 860px) 380px; justify-content: space-between; }
   .checkout-summary { padding: 28px; }
+}
+
+@keyframes stk-wait-slide {
+  0% { transform: translateX(-110%); }
+  100% { transform: translateX(250%); }
 }
