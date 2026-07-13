@@ -1,17 +1,17 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import {doc, onSnapshot} from "firebase/firestore";
-import { db } from "../../services/firebase";
 import { Link, useLocation } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import Confetti from "../../components/ui/Confetti";
 import TicketCard from "../../components/tickets/TicketCard";
 import TicketStatus from "../../components/tickets/TicketStatus";
-// import { getMpesaPaymentStatus } from "../../services/mpesa.service";
+import { getMpesaPaymentStatus } from "../../services/mpesa.service";
 import { downloadTicketSvg } from "../../utils/downloadTicket";
 import "./PaymentSuccess.css";
 import "./Ticket.css";
 
 const money = (value = 0) => `KSh ${Number(value).toLocaleString("en-KE")}`;
+const POLL_INTERVAL_MS = 4000;
+const MAX_WAIT_MS = 2 * 60 * 1000;
 
 function PaymentSuccess() {
   const { state } = useLocation();
@@ -20,103 +20,59 @@ function PaymentSuccess() {
   const [payment, setPayment] = useState(null);
   const [ticket, setTicket] = useState(null);
   const [error, setError] = useState("");
-  // const [attempts, setAttempts] = useState(0);
   const ticketRef = useRef(null);
 
   useLayoutEffect(() => window.scrollTo(0, 0), []);
 
-  // useEffect(() => {
-  //   if (!checkoutRequestID) return undefined;
+  useEffect(() => {
+    if (!checkoutRequestID) return undefined;
 
-  //   let cancelled = false;
-  //   let timer;
+    let cancelled = false;
+    let timer;
+    const startedAt = Date.now();
 
-  //   const loadStatus = async () => {
-  //     try {
-  //       const response = await getMpesaPaymentStatus(checkoutRequestID);
-  //       if (cancelled) return;
+    const loadStatus = async () => {
+      const elapsed = Date.now() - startedAt;
 
-  //       setPayment(response.data.payment);
-  //       setTicket(response.data.ticket);
-  //       setError("");
-
-  //       if (!response.data.ticket && response.data.payment?.status !== "failed" && attempts < 30) {
-  //         timer = window.setTimeout(() => setAttempts((current) => current + 1), 3000);
-  //       }
-  //     } catch (statusError) {
-  //       if (cancelled) return;
-  //       console.error("Payment status check failed:", statusError);
-  //       setError("We could not refresh your payment status. Try again in a moment.");
-  //       if (attempts < 30) {
-  //         timer = window.setTimeout(() => setAttempts((current) => current + 1), 4000);
-  //       }
-  //     }
-  //   };
-
-  //   loadStatus();
-
-  //   return () => {
-  //     cancelled = true;
-  //     window.clearTimeout(timer);
-  //   };
-  // }, [attempts, checkoutRequestID]);
-
-
-
- useEffect(() => {
-  if(!checkoutRequestID) return undefined;
-
-  const paymentRef = doc(db,"mpesaPayments",checkoutRequestID);
-  let unsubscribe = () => {};
-
-  unsubscribe = onSnapshot(
-    paymentRef,
-    (snapshot)=>{
-      if(!snapshot.exists()) return;
-
-      const paymentData = snapshot.data();
-
-      setPayment(paymentData);
-
-      if (
-        paymentData.status === "failed" ||
-        paymentData.status === "timed_out" ||
-        (paymentData.status === "paid" && paymentData.ticketId)
-      ) {
-        unsubscribe();
+      if (elapsed >= MAX_WAIT_MS) {
+        setError("Still waiting? Refresh or contact support.");
+        return;
       }
-    },
-    (snapshotError) => {
-      console.error("Payment listener failed:", snapshotError);
-      setError("We could not refresh your payment status. Try again in a moment.");
-    }
-  );
-   return unsubscribe;
- 
 
- }, [checkoutRequestID]);
+      try {
+        const response = await getMpesaPaymentStatus(checkoutRequestID);
+        if (cancelled) return;
 
- useEffect(() => {
-   if(!payment?.ticketId) return;
+        const nextPayment = response.data.payment;
+        const nextTicket = response.data.ticket;
 
-   const ticketRef = doc(db,"tickets", payment.ticketId);
+        setPayment(nextPayment);
+        setTicket(nextTicket);
+        setError("");
 
-    const unsubscribe = onSnapshot(
-    ticketRef,
-    (snapshot) => {
-      if(!snapshot.exists()) return;
+        const terminal =
+          nextPayment?.status === "paid" ||
+          nextPayment?.status === "failed" ||
+          nextPayment?.status === "timed_out";
 
-      const ticketData = snapshot.data();
+        if (!terminal) {
+          timer = window.setTimeout(loadStatus, POLL_INTERVAL_MS);
+        }
+      } catch (statusError) {
+        if (cancelled) return;
+        console.error("Payment status check failed:", statusError);
+        setError("We could not refresh your payment status. Try again in a moment.");
+        timer = window.setTimeout(loadStatus, POLL_INTERVAL_MS);
+      }
+    };
 
-      setTicket(ticketData);
-    },
-    (snapshotError) => {
-      console.error("Ticket listener failed:", snapshotError);
-      setError("We could not load your ticket. Try refreshing this page.");
-    }
-   );
-   return unsubscribe;
- },[payment?.ticketId]);
+    loadStatus();
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [checkoutRequestID]);
 
 
 
@@ -131,7 +87,8 @@ function PaymentSuccess() {
 
   const isFailed = payment?.status === "failed";
   const isTimedOut = payment?.status === "timed_out";
-  const isResolvedWithoutTicket = isFailed || isTimedOut;
+  const isPaid = payment?.status === "paid";
+  const isResolvedWithoutTicket = isFailed || isTimedOut || isPaid;
   const displayTicket = ticket || null;
   const summaryEvent = order?.event || displayTicket?.event || {};
   const summaryTicket = order?.ticket || displayTicket?.ticket || {};
@@ -143,11 +100,13 @@ function PaymentSuccess() {
 
       <section className="payment-success-hero">
         <Link to="/">← Back to events</Link>
-        <p>{displayTicket ? "Payment confirmed" : isFailed ? "Payment failed" : isTimedOut ? "Payment timed out" : "Payment processing"}</p>
-        <h1>{displayTicket ? <>Your ticket<br /><em>is ready.</em></> : isTimedOut ? <>Payment<br /><em>timed out.</em></> : <>Finish on<br /><em>your phone.</em></>}</h1>
+        <p>{displayTicket || isPaid ? "Payment confirmed" : isFailed ? "Payment failed" : isTimedOut ? "Payment timed out" : "Payment processing"}</p>
+        <h1>{displayTicket ? <>Your ticket<br /><em>is ready.</em></> : isPaid ? <>Payment<br /><em>confirmed.</em></> : isTimedOut ? <>Payment<br /><em>timed out.</em></> : <>Finish on<br /><em>your phone.</em></>}</h1>
         <span>
           {displayTicket
             ? "Your M-Pesa payment was confirmed and your scannable ticket has been issued."
+            : isPaid
+              ? "Your payment was confirmed. If your ticket is not visible yet, refresh this page or open My Tickets."
             : isFailed
               ? payment?.failureReason || "M-Pesa could not complete this payment."
               : isTimedOut
@@ -158,11 +117,11 @@ function PaymentSuccess() {
 
       <div className="payment-success-shell">
         <section className="payment-status-panel">
-          <div className={`live-payment-status live-payment-status--${displayTicket ? "ready" : isFailed ? "failed" : isTimedOut ? "timed_out" : "pending"}`}>
-            <TicketStatus status={displayTicket ? displayTicket.scanStatus : isFailed ? "failed" : isTimedOut ? "timed_out" : "pending"} />
+          <div className={`live-payment-status live-payment-status--${displayTicket || isPaid ? "ready" : isFailed ? "failed" : isTimedOut ? "timed_out" : "pending"}`}>
+            <TicketStatus status={displayTicket ? displayTicket.scanStatus : isPaid ? "paid" : isFailed ? "failed" : isTimedOut ? "timed_out" : "pending"} />
             <div>
               <span>{payment?.mpesaReceiptNumber || checkoutRequestID}</span>
-              <strong>{displayTicket ? "Ticket issued" : isFailed ? "Payment not completed" : isTimedOut ? "Payment timed out" : "Waiting for M-Pesa callback"}</strong>
+              <strong>{displayTicket ? "Ticket issued" : isPaid ? "Payment confirmed" : isFailed ? "Payment not completed" : isTimedOut ? "Payment timed out" : "Waiting for M-Pesa callback"}</strong>
             </div>
           </div>
 
@@ -182,7 +141,7 @@ function PaymentSuccess() {
             <div className="payment-wait-card">
               <span>Checkout request</span>
               <strong>{checkoutRequestID}</strong>
-              <p>{isResolvedWithoutTicket ? "Start a fresh checkout if you still want this ticket." : "Keep this tab open while we wait for Safaricom to confirm the payment."}</p>
+              <p>{isPaid ? "Your payment is confirmed. Refresh this page or open My Tickets if the ticket is not visible yet." : isResolvedWithoutTicket ? "Start a fresh checkout if you still want this ticket." : "Keep this tab open while we wait for Safaricom to confirm the payment."}</p>
               {/* <div className="payment-wait-actions">
                 {!isFailed && <Button variant="primary" type="button" onClick={() => setAttempts((current) => current + 1)}>Refresh status</Button>}
                 <Button type="button" onClick={restartCheckout} disabled={isRestarting}>
