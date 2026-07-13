@@ -29,6 +29,8 @@ function publicPayment(paymentId, paymentData) {
     failureCode: paymentData.failureCode || null,
     failureReason: paymentData.failureReason || null,
     createdAt: timestampToJson(paymentData.createdAt),
+    timeoutAt: timestampToJson(paymentData.timeoutAt),
+    timedOutAt: timestampToJson(paymentData.timedOutAt),
     paidAt: timestampToJson(paymentData.paidAt),
     updatedAt: timestampToJson(paymentData.updatedAt),
   };

@@ -55,6 +55,7 @@ async function getPublishedEvent(eventId) {
 async function getCheckoutQuote({ eventId, ticketId, quantity }) {
   const eventDoc = await db.collection("events").doc(eventId).get();
   if (!eventDoc.exists || eventDoc.data().status !== "published") {
+    console.log(eventDoc.data());
     const error = new Error("This event is not available for checkout.");
     error.statusCode = 404;
     throw error;

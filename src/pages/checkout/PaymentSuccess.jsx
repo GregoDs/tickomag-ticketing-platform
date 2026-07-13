@@ -1,11 +1,12 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import {doc, onSnapshot} from "firebase/firestore";
+import { db } from "../../services/firebase";
+import { Link, useLocation } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import Confetti from "../../components/ui/Confetti";
 import TicketCard from "../../components/tickets/TicketCard";
 import TicketStatus from "../../components/tickets/TicketStatus";
-import { getMpesaPaymentStatus } from "../../services/mpesa.service";
-import { getEvent } from "../../services/events.service";
+// import { getMpesaPaymentStatus } from "../../services/mpesa.service";
 import { downloadTicketSvg } from "../../utils/downloadTicket";
 import "./PaymentSuccess.css";
 import "./Ticket.css";
@@ -14,53 +15,110 @@ const money = (value = 0) => `KSh ${Number(value).toLocaleString("en-KE")}`;
 
 function PaymentSuccess() {
   const { state } = useLocation();
-  const navigate = useNavigate();
   const checkoutRequestID = state?.checkoutRequestID || window.localStorage.getItem("tickomag:lastCheckoutRequestID") || "";
   const order = useMemo(() => state?.order || null, [state]);
   const [payment, setPayment] = useState(null);
   const [ticket, setTicket] = useState(null);
   const [error, setError] = useState("");
-  const [attempts, setAttempts] = useState(0);
-  const [isRestarting, setIsRestarting] = useState(false);
+  // const [attempts, setAttempts] = useState(0);
   const ticketRef = useRef(null);
 
   useLayoutEffect(() => window.scrollTo(0, 0), []);
 
-  useEffect(() => {
-    if (!checkoutRequestID) return undefined;
+  // useEffect(() => {
+  //   if (!checkoutRequestID) return undefined;
 
-    let cancelled = false;
-    let timer;
+  //   let cancelled = false;
+  //   let timer;
 
-    const loadStatus = async () => {
-      try {
-        const response = await getMpesaPaymentStatus(checkoutRequestID);
-        if (cancelled) return;
+  //   const loadStatus = async () => {
+  //     try {
+  //       const response = await getMpesaPaymentStatus(checkoutRequestID);
+  //       if (cancelled) return;
 
-        setPayment(response.data.payment);
-        setTicket(response.data.ticket);
-        setError("");
+  //       setPayment(response.data.payment);
+  //       setTicket(response.data.ticket);
+  //       setError("");
 
-        if (!response.data.ticket && response.data.payment?.status !== "failed" && attempts < 30) {
-          timer = window.setTimeout(() => setAttempts((current) => current + 1), 3000);
-        }
-      } catch (statusError) {
-        if (cancelled) return;
-        console.error("Payment status check failed:", statusError);
-        setError("We could not refresh your payment status. Try again in a moment.");
-        if (attempts < 30) {
-          timer = window.setTimeout(() => setAttempts((current) => current + 1), 4000);
-        }
+  //       if (!response.data.ticket && response.data.payment?.status !== "failed" && attempts < 30) {
+  //         timer = window.setTimeout(() => setAttempts((current) => current + 1), 3000);
+  //       }
+  //     } catch (statusError) {
+  //       if (cancelled) return;
+  //       console.error("Payment status check failed:", statusError);
+  //       setError("We could not refresh your payment status. Try again in a moment.");
+  //       if (attempts < 30) {
+  //         timer = window.setTimeout(() => setAttempts((current) => current + 1), 4000);
+  //       }
+  //     }
+  //   };
+
+  //   loadStatus();
+
+  //   return () => {
+  //     cancelled = true;
+  //     window.clearTimeout(timer);
+  //   };
+  // }, [attempts, checkoutRequestID]);
+
+
+
+ useEffect(() => {
+  if(!checkoutRequestID) return undefined;
+
+  const paymentRef = doc(db,"mpesaPayments",checkoutRequestID);
+  let unsubscribe = () => {};
+
+  unsubscribe = onSnapshot(
+    paymentRef,
+    (snapshot)=>{
+      if(!snapshot.exists()) return;
+
+      const paymentData = snapshot.data();
+
+      setPayment(paymentData);
+
+      if (
+        paymentData.status === "failed" ||
+        paymentData.status === "timed_out" ||
+        (paymentData.status === "paid" && paymentData.ticketId)
+      ) {
+        unsubscribe();
       }
-    };
+    },
+    (snapshotError) => {
+      console.error("Payment listener failed:", snapshotError);
+      setError("We could not refresh your payment status. Try again in a moment.");
+    }
+  );
+   return unsubscribe;
+ 
 
-    loadStatus();
+ }, [checkoutRequestID]);
 
-    return () => {
-      cancelled = true;
-      window.clearTimeout(timer);
-    };
-  }, [attempts, checkoutRequestID]);
+ useEffect(() => {
+   if(!payment?.ticketId) return;
+
+   const ticketRef = doc(db,"tickets", payment.ticketId);
+
+    const unsubscribe = onSnapshot(
+    ticketRef,
+    (snapshot) => {
+      if(!snapshot.exists()) return;
+
+      const ticketData = snapshot.data();
+
+      setTicket(ticketData);
+    },
+    (snapshotError) => {
+      console.error("Ticket listener failed:", snapshotError);
+      setError("We could not load your ticket. Try refreshing this page.");
+    }
+   );
+   return unsubscribe;
+ },[payment?.ticketId]);
+
+
 
   if (!checkoutRequestID) {
     return (
@@ -72,41 +130,12 @@ function PaymentSuccess() {
   }
 
   const isFailed = payment?.status === "failed";
+  const isTimedOut = payment?.status === "timed_out";
+  const isResolvedWithoutTicket = isFailed || isTimedOut;
   const displayTicket = ticket || null;
   const summaryEvent = order?.event || displayTicket?.event || {};
   const summaryTicket = order?.ticket || displayTicket?.ticket || {};
   const summaryTotal = order?.total ?? displayTicket?.total ?? payment?.amount ?? 0;
-
-  const restartCheckout = async () => {
-    const eventId = order?.event?.id || payment?.eventId || payment?.event?.id;
-    const ticketId = order?.ticket?.id || payment?.ticket?.id;
-    if (!eventId || !ticketId) {
-      setError("This checkout cannot be restarted. Return to the event and select a ticket again.");
-      return;
-    }
-
-    setIsRestarting(true);
-    setError("");
-    try {
-      const event = await getEvent(eventId);
-      const ticket = event.tickets.find((option) => option.id === ticketId);
-      if (!ticket) throw new Error("That ticket type is no longer available.");
-      const quantity = Number(order?.quantity || payment?.quantity || 1);
-      window.localStorage.removeItem("tickomag:lastCheckoutRequestID");
-      navigate("/checkout", {
-        replace: true,
-        state: {
-          event,
-          ticket,
-          quantity,
-          total: Number(ticket.price) * quantity,
-        },
-      });
-    } catch (restartError) {
-      setError(restartError.message || "Checkout could not be restarted.");
-      setIsRestarting(false);
-    }
-  };
 
   return (
     <main className="payment-success-page">
@@ -114,24 +143,26 @@ function PaymentSuccess() {
 
       <section className="payment-success-hero">
         <Link to="/">← Back to events</Link>
-        <p>{displayTicket ? "Payment confirmed" : isFailed ? "Payment failed" : "Payment processing"}</p>
-        <h1>{displayTicket ? <>Your ticket<br /><em>is ready.</em></> : <>Finish on<br /><em>your phone.</em></>}</h1>
+        <p>{displayTicket ? "Payment confirmed" : isFailed ? "Payment failed" : isTimedOut ? "Payment timed out" : "Payment processing"}</p>
+        <h1>{displayTicket ? <>Your ticket<br /><em>is ready.</em></> : isTimedOut ? <>Payment<br /><em>timed out.</em></> : <>Finish on<br /><em>your phone.</em></>}</h1>
         <span>
           {displayTicket
             ? "Your M-Pesa payment was confirmed and your scannable ticket has been issued."
             : isFailed
               ? payment?.failureReason || "M-Pesa could not complete this payment."
-              : "Approve the STK prompt on your phone. This page will update automatically after confirmation."}
+              : isTimedOut
+                ? "We did not receive an M-Pesa callback in time. If you later complete the payment, the backend can still confirm it and issue your ticket."
+                : "Approve the STK prompt on your phone. This page will update automatically after confirmation."}
         </span>
       </section>
 
       <div className="payment-success-shell">
         <section className="payment-status-panel">
-          <div className={`live-payment-status live-payment-status--${displayTicket ? "ready" : isFailed ? "failed" : "pending"}`}>
-            <TicketStatus status={displayTicket ? displayTicket.scanStatus : isFailed ? "failed" : "pending"} />
+          <div className={`live-payment-status live-payment-status--${displayTicket ? "ready" : isFailed ? "failed" : isTimedOut ? "timed_out" : "pending"}`}>
+            <TicketStatus status={displayTicket ? displayTicket.scanStatus : isFailed ? "failed" : isTimedOut ? "timed_out" : "pending"} />
             <div>
               <span>{payment?.mpesaReceiptNumber || checkoutRequestID}</span>
-              <strong>{displayTicket ? "Ticket issued" : isFailed ? "Payment not completed" : "Waiting for M-Pesa callback"}</strong>
+              <strong>{displayTicket ? "Ticket issued" : isFailed ? "Payment not completed" : isTimedOut ? "Payment timed out" : "Waiting for M-Pesa callback"}</strong>
             </div>
           </div>
 
@@ -151,13 +182,13 @@ function PaymentSuccess() {
             <div className="payment-wait-card">
               <span>Checkout request</span>
               <strong>{checkoutRequestID}</strong>
-              <p>{isFailed ? "Start a fresh checkout if you still want this ticket." : "Keep this tab open while we wait for Safaricom to confirm the payment."}</p>
-              <div className="payment-wait-actions">
+              <p>{isResolvedWithoutTicket ? "Start a fresh checkout if you still want this ticket." : "Keep this tab open while we wait for Safaricom to confirm the payment."}</p>
+              {/* <div className="payment-wait-actions">
                 {!isFailed && <Button variant="primary" type="button" onClick={() => setAttempts((current) => current + 1)}>Refresh status</Button>}
                 <Button type="button" onClick={restartCheckout} disabled={isRestarting}>
                   {isRestarting ? "Loading checkout…" : isFailed ? "Try payment again" : "Start over"}
                 </Button>
-              </div>
+              </div> */}
             </div>
           )}
 

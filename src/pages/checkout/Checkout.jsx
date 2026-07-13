@@ -14,7 +14,6 @@ const normalizeMpesaPhone = (value) => {
   if (digits.length === 9) return `254${digits}`;
   return digits;
 };
-
 function Checkout() {
   const { state } = useLocation();
   const navigate = useNavigate();

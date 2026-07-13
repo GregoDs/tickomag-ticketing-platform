@@ -27,13 +27,14 @@ function assertMpesaConfig() {
   }
 }
 
-// Create Access token function
+// Create Access token function OAUTH
 async function getAccessToken() {
   assertMpesaConfig();
 
   const auth = Buffer.from(
     `${config.consumerKey}:${config.consumerSecret}`
   ).toString("base64");
+
 
   const response = await axios.get(
     `${config.baseUrl}/oauth/v1/generate?grant_type=client_credentials`,
@@ -61,7 +62,7 @@ function getMpesaTimestamp(date = new Date()) {
 }
 
 
-// Create stk push function
+// Create stk push function...call daraja
 async function stkPush(phone, amount, accountReference) {
   const token = await getAccessToken();
   const timestamp = getMpesaTimestamp();
@@ -74,15 +75,18 @@ async function stkPush(phone, amount, accountReference) {
     BusinessShortCode: config.shortcode,
     Password: password,
     Timestamp: timestamp,
-    TransactionType: "CustomerPayBillOnline",
+    TransactionType: "CustomerBuyGoodsOnline",
     Amount: amount,
     PartyA: phone,
-    PartyB: config.shortcode,
+    PartyB: config.masqueradeTill,
     PhoneNumber: phone,
     CallBackURL: config.callbackUrl,
     AccountReference: accountReference,
     TransactionDesc: "Ticket Payment",
   };
+
+console.log("STK Payload:");
+console.log(payload);
 
   const response = await axios.post(
     `${config.baseUrl}/mpesa/stkpush/v1/processrequest`,
@@ -93,6 +97,10 @@ async function stkPush(phone, amount, accountReference) {
       },
     }
   );
+
+console.log("Safaricom STK Response:");
+
+console.log(response.data);
 
   return response.data;
 }

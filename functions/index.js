@@ -1,9 +1,11 @@
 const { onRequest } = require("firebase-functions/v2/https");
+const { onSchedule } = require("firebase-functions/v2/scheduler");
 const express = require("express");
 
 const mpesaRoutes = require("./routes/mpesa.routes");
 const ticketRoutes = require("./routes/ticket.routes");
 const eventRoutes = require("./routes/event.routes");
+const { markTimedOutPayments } = require("./services/payment-timeout.service");
 
 const app = express();
 
@@ -29,3 +31,7 @@ app.use("/api/events", eventRoutes);
 app.use("/events", eventRoutes);
 
 exports.api = onRequest({ invoker: "public" }, app);
+exports.markTimedOutMpesaPayments = onSchedule(
+  "* * * * *",
+  markTimedOutPayments
+);
