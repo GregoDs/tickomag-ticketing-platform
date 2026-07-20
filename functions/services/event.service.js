@@ -52,7 +52,7 @@ async function getPublishedEvent(eventId) {
   return publicEvent(document);
 }
 
-async function getCheckoutQuote({ eventId, ticketId, quantity }) {
+async function getCheckoutQuote({ eventId, ticketId, quantity, allowFree = false }) {
   const eventDoc = await db.collection("events").doc(eventId).get();
   if (!eventDoc.exists || eventDoc.data().status !== "published") {
     console.log(eventDoc.data());
@@ -85,7 +85,7 @@ async function getCheckoutQuote({ eventId, ticketId, quantity }) {
 
   const unitPrice = Number(ticket.price);
   const total = unitPrice * parsedQuantity;
-  if (!Number.isSafeInteger(total) || total < 1) {
+  if (!Number.isSafeInteger(total) || total < 0 || (!allowFree && total < 1)) {
     const error = new Error("This ticket cannot be paid for through M-Pesa.");
     error.statusCode = 400;
     throw error;

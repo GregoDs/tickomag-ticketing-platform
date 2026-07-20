@@ -15,16 +15,22 @@ const MAX_WAIT_MS = 2 * 60 * 1000;
 
 function PaymentSuccess() {
   const { state } = useLocation();
-  const checkoutRequestID = state?.checkoutRequestID || window.localStorage.getItem("tickomag:lastCheckoutRequestID") || "";
+  const isFreeTicket = Boolean(state?.freeTicket);
+  const checkoutRequestID = state?.checkoutRequestID || state?.ticket?.checkoutRequestID || window.localStorage.getItem("tickomag:lastCheckoutRequestID") || "";
   const order = useMemo(() => state?.order || null, [state]);
-  const [payment, setPayment] = useState(null);
-  const [ticket, setTicket] = useState(null);
+  const [payment, setPayment] = useState(isFreeTicket ? {
+    status: "paid",
+    phone: state?.ticket?.phone || state?.order?.phone || "",
+    amount: 0,
+  } : null);
+  const [ticket, setTicket] = useState(state?.ticket || null);
   const [error, setError] = useState("");
   const ticketRef = useRef(null);
 
   useLayoutEffect(() => window.scrollTo(0, 0), []);
 
   useEffect(() => {
+    if (isFreeTicket) return undefined;
     if (!checkoutRequestID) return undefined;
 
     let cancelled = false;
@@ -72,7 +78,7 @@ function PaymentSuccess() {
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [checkoutRequestID]);
+  }, [checkoutRequestID, isFreeTicket]);
 
 
 
@@ -100,10 +106,12 @@ function PaymentSuccess() {
 
       <section className="payment-success-hero">
         <Link to="/">← Back to events</Link>
-        <p>{displayTicket || isPaid ? "Payment confirmed" : isFailed ? "Payment failed" : isTimedOut ? "Payment timed out" : "Payment processing"}</p>
+        <p>{displayTicket && isFreeTicket ? "Free ticket issued" : displayTicket || isPaid ? "Payment confirmed" : isFailed ? "Payment failed" : isTimedOut ? "Payment timed out" : "Payment processing"}</p>
         <h1>{displayTicket ? <>Your ticket<br /><em>is ready.</em></> : isPaid ? <>Payment<br /><em>confirmed.</em></> : isTimedOut ? <>Payment<br /><em>timed out.</em></> : <>Finish on<br /><em>your phone.</em></>}</h1>
         <span>
-          {displayTicket
+          {displayTicket && isFreeTicket
+            ? "Your free ticket has been issued with a scannable QR code."
+            : displayTicket
             ? "Your M-Pesa payment was confirmed and your scannable ticket has been issued."
             : isPaid
               ? "Your payment was confirmed. If your ticket is not visible yet, refresh this page or open My Tickets."
@@ -121,7 +129,7 @@ function PaymentSuccess() {
             <TicketStatus status={displayTicket ? displayTicket.scanStatus : isPaid ? "paid" : isFailed ? "failed" : isTimedOut ? "timed_out" : "pending"} />
             <div>
               <span>{payment?.mpesaReceiptNumber || checkoutRequestID}</span>
-              <strong>{displayTicket ? "Ticket issued" : isPaid ? "Payment confirmed" : isFailed ? "Payment not completed" : isTimedOut ? "Payment timed out" : "Waiting for M-Pesa callback"}</strong>
+              <strong>{displayTicket && isFreeTicket ? "Free ticket issued" : displayTicket ? "Ticket issued" : isPaid ? "Payment confirmed" : isFailed ? "Payment not completed" : isTimedOut ? "Payment timed out" : "Waiting for M-Pesa callback"}</strong>
             </div>
           </div>
 
@@ -161,7 +169,7 @@ function PaymentSuccess() {
             <div><dt>Ticket</dt><dd>{summaryTicket.name || "Admission"} × {order?.quantity || displayTicket?.quantity || 1}</dd></div>
             <div><dt>Total</dt><dd>{money(summaryTotal)}</dd></div>
             <div><dt>Phone</dt><dd>{payment?.phone || order?.phone}</dd></div>
-            <div><dt>Status</dt><dd>{payment?.status || "pending"}</dd></div>
+            <div><dt>Status</dt><dd>{isFreeTicket ? "issued" : payment?.status || "pending"}</dd></div>
           </dl>
         </aside>
       </div>

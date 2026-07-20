@@ -2,6 +2,7 @@ const { stkPush } = require("../services/mpesa.service");
 const { db } = require("../services/firebase.service");
 const { getCheckoutQuote } = require("../services/event.service");
 const { getPaymentTimeoutMinutes } = require("../services/payment-timeout.service");
+const { issueFreeTicket } = require("../services/ticket.service");
 
 function normalizeMpesaPhone(phone) {
   if (typeof phone !== "string" && typeof phone !== "number") {
@@ -27,6 +28,31 @@ function normalizeMpesaPhone(phone) {
 
 function requireNonEmptyString(value) {
   return typeof value === "string" && value.trim().length > 0;
+}
+
+function normalizeAttendee(attendee = {}) {
+  return {
+    firstName: String(attendee.firstName || "").trim(),
+    lastName: String(attendee.lastName || "").trim(),
+    email: String(attendee.email || "").trim().toLowerCase(),
+    phone: String(attendee.phone || "").trim(),
+  };
+}
+
+function validateAttendee(attendee = {}) {
+  const normalized = normalizeAttendee(attendee);
+  const errors = [];
+
+  if (!normalized.firstName) errors.push("attendee.firstName is required.");
+  if (!normalized.lastName) errors.push("attendee.lastName is required.");
+  if (!/^\S+@\S+\.\S+$/.test(normalized.email)) {
+    errors.push("attendee.email must be a valid email address.");
+  }
+  if (!normalizeMpesaPhone(normalized.phone)) {
+    errors.push("attendee.phone must be a valid Kenyan phone number.");
+  }
+
+  return { errors, value: normalized };
 }
 
 function validateStkPushPayload(payload = {}) {
@@ -64,6 +90,41 @@ function validateStkPushPayload(payload = {}) {
     value: {
       phone: normalizedPhone,
       attendee: payload.attendee || {},
+      eventId: requireNonEmptyString(payload.eventId)
+        ? payload.eventId.trim()
+        : "",
+      ticketId: requireNonEmptyString(payload.ticketId)
+        ? payload.ticketId.trim()
+        : "",
+      quantity,
+    },
+  };
+}
+
+function validateFreeTicketPayload(payload = {}) {
+  const errors = [];
+  const quantity = payload.quantity === undefined ? 1 : Number(payload.quantity);
+  const attendeeValidation = validateAttendee(payload.attendee || {});
+
+  errors.push(...attendeeValidation.errors);
+
+  if (!requireNonEmptyString(payload.eventId)) {
+    errors.push("eventId is required.");
+  }
+
+  if (!requireNonEmptyString(payload.ticketId)) {
+    errors.push("ticketId is required.");
+  }
+
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    errors.push("quantity must be a positive integer.");
+  }
+
+  return {
+    errors,
+    value: {
+      attendee: attendeeValidation.value,
+      phone: normalizeMpesaPhone(attendeeValidation.value.phone),
       eventId: requireNonEmptyString(payload.eventId)
         ? payload.eventId.trim()
         : "",
@@ -183,6 +244,71 @@ async function initiateStkPush(req, res) {
   }
 }
 
+async function createFreeTicket(req, res) {
+  try {
+    const validation = validateFreeTicketPayload(req.body);
+
+    if (validation.errors.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid free ticket request.",
+        errors: validation.errors,
+      });
+    }
+
+    const {
+      attendee,
+      phone,
+      eventId,
+      ticketId,
+      quantity,
+    } = validation.value;
+
+    const quote = await getCheckoutQuote({
+      eventId,
+      ticketId,
+      quantity,
+      allowFree: true,
+    });
+
+    if (quote.total !== 0) {
+      return res.status(400).json({
+        success: false,
+        message: "This ticket requires payment.",
+      });
+    }
+
+    const result = await issueFreeTicket({
+      attendee,
+      phone,
+      quote,
+    });
+
+    return res.status(201).json({
+      success: true,
+      message: "Free ticket issued",
+      data: {
+        orderId: result.orderId,
+        ticket: result.ticket,
+        quote: {
+          event: quote.event,
+          ticket: quote.ticket,
+          quantity: quote.quantity,
+          total: quote.total,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("Free ticket issue failed:", error);
+
+    return res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || "Free ticket could not be issued.",
+    });
+  }
+}
+
 module.exports = {
-  initiateStkPush
+  initiateStkPush,
+  createFreeTicket,
 };

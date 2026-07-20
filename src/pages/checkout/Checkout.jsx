@@ -2,7 +2,7 @@ import { useLayoutEffect, useRef, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import Button from "../../components/ui/Button";
 import Spinner from "../../components/ui/Spinner";
-import { initiateMpesaPayment } from "../../services/mpesa.service";
+import { createFreeTicket, initiateMpesaPayment } from "../../services/mpesa.service";
 import "./Checkout.css";
 
 const initialForm = { firstName: "", lastName: "", email: "", phone: "" };
@@ -31,6 +31,7 @@ function Checkout() {
   }
 
   const { event, ticket, quantity, total } = state;
+  const isFreeTicket = Number(total) === 0;
 
   const updateField = ({ target }) => {
     setForm((current) => ({ ...current, [target.name]: target.value }));
@@ -76,6 +77,39 @@ function Checkout() {
     };
 
     try {
+      if (isFreeTicket) {
+        const response = await createFreeTicket({
+          attendee,
+          eventId: event.id,
+          ticketId: ticket.id,
+          quantity: Number(quantity),
+        });
+        const issuedTicket = response.data?.ticket;
+        const orderId = response.data?.orderId;
+
+        if (!issuedTicket || !orderId) {
+          throw new Error("The ticket response was incomplete.");
+        }
+
+        navigate("/payment-success", {
+          replace: true,
+          state: {
+            freeTicket: true,
+            ticket: issuedTicket,
+            order: {
+              phone: attendee.phone,
+              attendee,
+              event,
+              ticket,
+              quantity: Number(quantity),
+              total: 0,
+              orderId,
+            },
+          },
+        });
+        return;
+      }
+
       const response = await initiateMpesaPayment(order);
       const checkoutRequestID = response.data?.CheckoutRequestID;
 
@@ -99,8 +133,8 @@ function Checkout() {
         },
       });
     } catch (error) {
-      console.error("M-Pesa payment initiation failed:", error);
-      setPaymentError(error.message || "We could not start the M-Pesa payment. Try again.");
+      console.error("Checkout failed:", error);
+      setPaymentError(error.message || "We could not complete checkout. Try again.");
     } finally {
       setIsPaying(false);
     }
@@ -152,22 +186,32 @@ function Checkout() {
             <div className="checkout-section-heading"><span>02</span><div><p>Payment</p><h2>Payment Information</h2></div></div>
             <div className="payment-methods payment-methods--single" aria-label="Payment method">
               <button className="is-selected" type="button" aria-pressed="true" onClick={focusPaymentAction}>
-                <span>M-Pesa</span>
-                <strong>STK push</strong>
-                <small>Receive a prompt on your phone and confirm with your PIN.</small>
+                <span>{isFreeTicket ? "Free entry" : "M-Pesa"}</span>
+                <strong>{isFreeTicket ? "No payment required" : "STK push"}</strong>
+                <small>{isFreeTicket ? "Your ticket will be issued after we validate the free ticket selection." : "Receive a prompt on your phone and confirm with your PIN."}</small>
               </button>
             </div>
             <ol className="payment-steps">
-              <li><span>1</span>Tap Make payment and approve the STK prompt on your phone.</li>
-              <li><span>3</span>Your ticket is issued immediately after we confirm payment.</li>
-              <li><span>4</span>The next screen updates itself and shows your QR ticket.</li>
+              {isFreeTicket ? (
+                <>
+                  <li><span>1</span>Tap Get free ticket after entering your attendee details.</li>
+                  <li><span>2</span>We confirm the ticket is still marked free and available.</li>
+                  <li><span>3</span>Your QR ticket is issued immediately.</li>
+                </>
+              ) : (
+                <>
+                  <li><span>1</span>Tap Make payment and approve the STK prompt on your phone.</li>
+                  <li><span>2</span>Your ticket is issued immediately after we confirm payment.</li>
+                  <li><span>3</span>The next screen updates itself and shows your QR ticket.</li>
+                </>
+              )}
             </ol>
             {isPaying && (
               <div className="stk-wait-panel" role="status" aria-live="polite">
                 <div>
-                  <Spinner label="Sending STK prompt" />
-                  <strong>Check your phone</strong>
-                  <p>We are securely contacting M-Pesa. Keep this page open while the prompt is sent.</p>
+                  <Spinner label={isFreeTicket ? "Issuing ticket" : "Sending STK prompt"} />
+                  <strong>{isFreeTicket ? "Issuing ticket" : "Check your phone"}</strong>
+                  <p>{isFreeTicket ? "We are securely creating your scannable ticket." : "We are securely contacting M-Pesa. Keep this page open while the prompt is sent."}</p>
                 </div>
                 <div className="stk-wait-progress" aria-hidden="true"><i /></div>
               </div>
@@ -175,7 +219,7 @@ function Checkout() {
             {paymentError && <small className="checkout-payment-error" role="alert">{paymentError}</small>}
           </section>
 
-          <Button className="checkout-submit" variant="primary" type="submit" disabled={isPaying}>{isPaying ? "Sending prompt" : "Make payment"} <span>→</span></Button>
+          <Button className="checkout-submit" variant="primary" type="submit" disabled={isPaying}>{isPaying ? (isFreeTicket ? "Issuing ticket" : "Sending prompt") : (isFreeTicket ? "Get free ticket" : "Make payment")} <span>→</span></Button>
         </form>
       </div>
     </main>

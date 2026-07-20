@@ -3,6 +3,18 @@ const { db } = require("./firebase.service");
 const { generateTicketCode } = require("../utils/generateTicketCode");
 const { generateScanToken } = require("../utils/generateScanToken");
 
+function createTicketDetails(ticketRef) {
+  const ticketCode = generateTicketCode(ticketRef.id);
+  const scanToken = generateScanToken();
+  const qrPayload = `TM1.${ticketRef.id}.${scanToken}`;
+
+  return {
+    ticketCode,
+    scanToken,
+    qrPayload,
+  };
+}
+
 async function confirmPayment({
   paymentId,
   checkoutRequestID,
@@ -23,15 +35,7 @@ async function confirmPayment({
     const ticketRef =
       db.collection("tickets").doc();
 
-    // Generate ticket details
-    const ticketCode =
-      generateTicketCode(ticketRef.id);
-
-    const scanToken =
-      generateScanToken();
-
-    const qrPayload =
-      `TM1.${ticketRef.id}.${scanToken}`;
+    const { ticketCode, scanToken, qrPayload } = createTicketDetails(ticketRef);
 
     const result = await db.runTransaction(async (transaction) => {
       const approvedPaymentDoc =
@@ -161,6 +165,98 @@ async function confirmPayment({
   }
 }
 
+async function issueFreeTicket({
+  attendee,
+  phone,
+  quote,
+}) {
+  const freeOrderRef = db.collection("freeTicketOrders").doc();
+  const ticketRef = db.collection("tickets").doc();
+  const { ticketCode, scanToken, qrPayload } = createTicketDetails(ticketRef);
+  const orderId = freeOrderRef.id;
+
+  await db.runTransaction(async (transaction) => {
+    transaction.set(freeOrderRef, {
+      orderId,
+      paymentMethod: "free",
+      status: "issued",
+      phone,
+      attendee,
+      event: quote.event,
+      ticket: {
+        ...quote.ticket,
+        quantity: quote.quantity,
+      },
+      quantity: quote.quantity,
+      total: 0,
+      ticketId: ticketRef.id,
+      ticketCode,
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp(),
+    });
+
+    transaction.set(ticketRef, {
+      ticketId: ticketRef.id,
+      paymentMethod: "free",
+      paymentId: orderId,
+      checkoutRequestID: orderId,
+      phone,
+      amount: 0,
+      total: 0,
+      attendee,
+      event: quote.event,
+      ticket: {
+        ...quote.ticket,
+        quantity: quote.quantity,
+      },
+      quantity: quote.quantity,
+      orderId,
+      eventId: quote.event.id,
+      merchantAccount: quote.merchantAccount || null,
+      mpesaReceiptNumber: null,
+      ticketCode,
+      scanToken,
+      qrPayload,
+      status: "active",
+      scanStatus: "valid",
+      scanAttempts: 0,
+      scannedAt: null,
+      scannedBy: null,
+      createdAt: FieldValue.serverTimestamp(),
+    });
+  });
+
+  return {
+    orderId,
+    ticket: {
+      ticketId: ticketRef.id,
+      ticketCode,
+      qrPayload,
+      status: "active",
+      scanStatus: "valid",
+      paymentMethod: "free",
+      paymentId: orderId,
+      checkoutRequestID: orderId,
+      phone,
+      amount: 0,
+      attendee,
+      event: quote.event,
+      ticket: {
+        ...quote.ticket,
+        quantity: quote.quantity,
+      },
+      quantity: quote.quantity,
+      total: 0,
+      orderId,
+      eventId: quote.event.id,
+      merchantAccount: quote.merchantAccount || null,
+      mpesaReceiptNumber: null,
+      scanAttempts: 0,
+    },
+  };
+}
+
 module.exports = {
   confirmPayment,
+  issueFreeTicket,
 };

@@ -35,6 +35,18 @@ export async function initiateMpesaPayment(order) {
   return parseResponse(response);
 }
 
+export async function createFreeTicket(order) {
+  const response = await fetch(`${API_BASE_URL}/free-ticket`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(order),
+  });
+
+  return parseResponse(response);
+}
+
 export async function getMpesaPaymentStatus(checkoutRequestID) {
   const response = await fetch(
     `${API_BASE_URL}/payment-status/${encodeURIComponent(checkoutRequestID)}`
